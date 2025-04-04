@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controlador.VistaFacturaController"
+            prefHeight="200.0" prefWidth="300.0">
+
+    <Button layoutX="90.0" layoutY="80.0" text="Generar factura" onAction="#generarFactura"/>
+</AnchorPane>
