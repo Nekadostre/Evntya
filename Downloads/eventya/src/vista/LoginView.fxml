@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.*?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="controlador.LoginController" prefWidth="400" prefHeight="300">
+<AnchorPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="controlador.LoginController"  stylesheets="@vista/login.css" prefWidth="400" prefHeight="300">
     <children>
         <VBox alignment="CENTER" spacing="10.0" layoutX="50" layoutY="50" AnchorPane.topAnchor="40.0" AnchorPane.leftAnchor="40.0" AnchorPane.rightAnchor="40.0">
             <Label text="Iniciar sesión" style="-fx-font-size: 20px; -fx-font-weight: bold;" />

@@ -7,13 +7,22 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class Main extends Application {
+
     @Override
-    public void start(Stage stage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/vista/LoginView.fxml"));
+    public void start(Stage primaryStage) throws Exception {
+        // Cargar la vista del login
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/LoginView.fxml"));
+        Parent root = loader.load();
+
+        // Crear escena y aplicar CSS
         Scene scene = new Scene(root);
-        stage.setTitle("Login");
-        stage.setScene(scene);
-        stage.show();
+           scene.getStylesheets().add(getClass().getResource("/vista/login.css").toExternalForm());
+
+
+        // Configurar y mostrar la ventana
+        primaryStage.setTitle("Login");
+        primaryStage.setScene(scene);
+        primaryStage.show();
     }
 
     public static void main(String[] args) {
