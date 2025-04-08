@@ -33,19 +33,25 @@ public class LoginController {
             return;
         }
 
+        // Obtener nombre, apellidos y rol del usuario
         String[] datosUsuario = LoginDAO.validarLoginConDatos(usuarioId, contrasena);
 
         if (datosUsuario != null) {
             String nombre = datosUsuario[0];
             String apellidos = datosUsuario[1];
+            String rol = datosUsuario[2];
+
+
+            // Registrar en historial
+            LoginDAO.registrarHistorialLogin(usuarioId);
 
             try {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PanelPrincipal.fxml"));
                 Parent root = loader.load();
 
-                // Pasar datos al PanelPrincipalController
+                // Pasar datos al panel principal
                 PanelPrincipalController controller = loader.getController();
-                controller.inicializarUsuario(nombre, apellidos);
+                controller.inicializarUsuario(nombre, apellidos, rol);
 
                 Stage stage = new Stage();
                 stage.setScene(new Scene(root));
@@ -65,25 +71,4 @@ public class LoginController {
             lblMensaje.setText("Credenciales incorrectas.");
         }
     }
-
-
-    // Puedes agregar este método si luego haces navegación de ventanas:
-    /*
-    private void abrirPanelPrincipal() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/vista/PanelPrincipal.fxml"));
-            Parent root = loader.load();
-            Stage stage = new Stage();
-            stage.setScene(new Scene(root));
-            stage.setTitle("Panel Principal");
-            stage.show();
-
-            // Cerrar ventana actual
-            Stage currentStage = (Stage) btnIngresar.getScene().getWindow();
-            currentStage.close();
-        } catch (IOException e) {
-            System.out.println("Error al abrir panel principal: " + e.getMessage());
-        }
-    }
-    */
 }

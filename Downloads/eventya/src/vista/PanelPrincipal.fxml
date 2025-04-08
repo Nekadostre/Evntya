@@ -2,16 +2,25 @@
 
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
 
+<AnchorPane xmlns:fx="http://javafx.com/fxml/1" fx:controller="controlador.PanelPrincipalController">
+    <children>
+        <VBox spacing="10.0" alignment="TOP_CENTER" AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="20.0">
+            
+            <!-- Mensaje de bienvenida -->
+            <Label fx:id="lblNombreUsuario" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="controlador.PanelPrincipalController"
-            prefHeight="300.0" prefWidth="400.0">
+            <!-- Botones de navegación -->
+            <Button text="Clientes" onAction="#abrirClientes" />
+            <Button text="Reservas" onAction="#abrirReservas" />
+            <Button fx:id="btnFacturacion" text="Facturación" onAction="#abrirFacturacion" />
+            <Button fx:id="btnUsuarios" text="Usuarios" onAction="#abrirUsuarios" />
+            <Button fx:id="btnAuditoria" text="Auditoría" onAction="#abrirAuditoria" />
+            
+            <!-- Botón de salida -->
+            <Button text="Salir" onAction="#salirAplicacion" style="-fx-background-color: red; -fx-text-fill: white;" />
 
-    <Button fx:id="btnClientes" layoutX="50" layoutY="40" text="Clientes" onAction="#abrirClientes"/>
-    <Button fx:id="btnReservas" layoutX="50" layoutY="90" text="Reservas" onAction="#abrirReservas"/>
-    <Button fx:id="btnFacturacion" layoutX="50" layoutY="140" text="Facturación" onAction="#abrirFacturacion"/>
-    <Button fx:id="btnSalir" layoutX="50" layoutY="190" text="Salir" onAction="#salirAplicacion"/>
-    <Label fx:id="lblNombreUsuario" text="Bienvenido"/>
+        </VBox>
+    </children>
 </AnchorPane>

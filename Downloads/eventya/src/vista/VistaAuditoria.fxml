@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controlador.VistaAuditoriaController" prefWidth="600" prefHeight="400">
+    <children>
+        <VBox spacing="10.0" AnchorPane.topAnchor="10.0" AnchorPane.leftAnchor="10.0" AnchorPane.rightAnchor="10.0" AnchorPane.bottomAnchor="10.0">
+            <Label text="Historial de Inicios de Sesión" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+            
+            <TableView fx:id="tablaHistorial">
+                <columns>
+                    <TableColumn fx:id="colUsuario" text="ID Usuario" prefWidth="200" />
+                    <TableColumn fx:id="colFecha" text="Fecha de ingreso" prefWidth="380" />
+                </columns>
+            </TableView>
+        </VBox>
+    </children>
+</AnchorPane>
