@@ -1,38 +1,32 @@
 package modelo;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 
-/**
- *
- * @author pollix
- */
 public class LoginDAO {
-    
-    public boolean validarUsuario (String nombreUsuario, String passwordUsuario){
-        
-        String consulta = "SELECT * FROM \"Login_2024\".\"usuarioSistema\" "
-                + "WHERE \"usuarioSistema\".\"Login_usuario\" = ? AND \"usuarioSistema\".\"Login_contra\" = ?";
-    
-        try (Connection conectar = DriverManager.getConnection("jdbc:mysql://localhost:3306/dbsgref", "root", "admin123");
-        PreparedStatement stmt = conectar.prepareStatement(consulta)) {
-        
-        stmt.setString(1, nombreUsuario);
-        stmt.setString(2, passwordUsuario);
 
-            try (ResultSet rs = stmt.executeQuery()) {
-           
-            return rs.next();
-            }
+   public static String[] validarLoginConDatos(String usuarioId, String contrasena) {
+    String[] datos = null;
 
-        } 
-        catch (SQLException e) {
-        e.printStackTrace();  
-        return false; 
-        
+    try (Connection conn = Conexion.conectar()) {
+        String sql = "SELECT nombre, apellidos FROM usuarios WHERE usuario = ? AND contrasena = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, usuarioId);
+        stmt.setString(2, contrasena);
+        ResultSet rs = stmt.executeQuery();
+
+        if (rs.next()) {
+            datos = new String[] {
+                rs.getString("nombre"),
+                rs.getString("apellidos")
+            };
         }
+    } catch (Exception e) {
+        System.out.println("Error en login: " + e.getMessage());
     }
+
+    return datos;
+}
+
 }
