@@ -21,7 +21,7 @@ public class LoginDAO {
             datos = new String[] {
                 rs.getString("nombre"),
                 rs.getString("apellidos"),
-                rs.getString("rol")  // 👈 aquí está el tercero
+                rs.getString("rol") 
             };
         }
 
