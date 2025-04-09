@@ -9,7 +9,7 @@ import javafx.stage.Stage;
 public class PanelPrincipalController {
 
     public void abrirClientes(ActionEvent event) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/vista/vistas_cliente/RegistroCliente.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/vista/RegistroCliente.fxml"));
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
         stage.setTitle("Clientes");
@@ -17,7 +17,7 @@ public class PanelPrincipalController {
     }
 
     public void abrirReservas(ActionEvent event) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/vista/VistaCalendario/VistaCalendario.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/vista/VistaCalendario.fxml"));
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
         stage.setTitle("Reservas");
@@ -25,7 +25,7 @@ public class PanelPrincipalController {
     }
 
     public void abrirFacturacion(ActionEvent event) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/vista/vistas_panel/VistaFactura.fxml"));
+        Parent root = FXMLLoader.load(getClass().getResource("/vista/VistaFactura.fxml"));
         Stage stage = new Stage();
         stage.setScene(new Scene(root));
         stage.setTitle("Facturación");

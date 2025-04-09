@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="controlador.PanelPrincipalController"
-            prefHeight="300.0" prefWidth="400.0">
+<AnchorPane prefHeight="300.0" prefWidth="400.0" style="-fx-background-color: #87CEEB;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controlador.PanelPrincipalController">
 
-    <Button fx:id="btnClientes" layoutX="50" layoutY="40" text="Clientes" onAction="#abrirClientes"/>
-    <Button fx:id="btnReservas" layoutX="50" layoutY="90" text="Reservas" onAction="#abrirReservas"/>
-    <Button fx:id="btnFacturacion" layoutX="50" layoutY="140" text="Facturación" onAction="#abrirFacturacion"/>
-    <Button fx:id="btnSalir" layoutX="50" layoutY="190" text="Salir" onAction="#salirAplicacion"/>
+    <Button fx:id="btnClientes" layoutX="31.0" layoutY="30.0" onAction="#abrirClientes" text="Clientes" />
+    <Button fx:id="btnReservas" layoutX="104.0" layoutY="30.0" onAction="#abrirReservas" text="Reservas" />
+    <Button fx:id="btnFacturacion" layoutX="182.0" layoutY="30.0" onAction="#abrirFacturacion" text="Facturación" />
+    <Button fx:id="btnSalir" layoutX="296.0" layoutY="30.0" onAction="#salirAplicacion" text="Salir" />
+   <ImageView fitHeight="233.0" fitWidth="211.0" layoutX="89.0" layoutY="79.0" pickOnBounds="true" preserveRatio="true">
+      <image>
+         <Image url="@../imagenes/bootp..png" />
+      </image>
+   </ImageView>
 
 </AnchorPane>

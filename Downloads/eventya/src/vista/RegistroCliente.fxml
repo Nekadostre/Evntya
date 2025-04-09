@@ -1,52 +1,79 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Point3D?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="640.0" prefWidth="640.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="476.0" prefWidth="398.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1">
    <children>
-      <Label fx:id="lb_RegClientes" layoutX="145.0" layoutY="28.0" prefHeight="59.0" prefWidth="363.0" text="Registro de usuario">
-         <font>
-            <Font name="Canela Text Regular" size="36.0" />
-         </font>
-         <rotationAxis>
-            <Point3D />
-         </rotationAxis>
-      </Label>
-      <TextField fx:id="txt_Nombre" layoutX="100.0" layoutY="100.0" promptText="Nombre Completo">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </TextField>
-      <TextField fx:id="txt_AP" layoutX="100.0" layoutY="175.0" promptText="ID Usuario">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </TextField>
-      <TextField fx:id="txt_AM" layoutX="100.0" layoutY="325.0" promptText="Contraseña">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </TextField>
-      <TextField fx:id="txt_NumTEL" layoutX="100.0" layoutY="250.0" promptText="Correo Electronico">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </TextField>
-      <TextField fx:id="txt_RFC" layoutX="100.0" layoutY="400.0" promptText="Rol de Usuario">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </TextField>
-      <Button fx:id="btn_Rgistar" layoutX="240.0" layoutY="500.0" mnemonicParsing="false" text="Registrar">
-         <font>
-            <Font size="24.0" />
-         </font>
-      </Button>
+      <VBox fx:id="cont_RegClientes" layoutX="10.0" layoutY="10.0" prefHeight="503.0" prefWidth="386.0">
+         <children>
+            <Label fx:id="lb_RegClientes" prefHeight="68.0" prefWidth="160.0" text="Registro Clientes" />
+            <VBox fx:id="cont_form1" prefHeight="423.0" prefWidth="334.0">
+               <children>
+                  <Label fx:id="lb_Nombre" text="Nombre">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="txt_Nombre" prefHeight="10.0" prefWidth="237.0">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </TextField>
+                  <Label fx:id="lb_Apellido_paterno" text="Apellido paterno">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="txt_AP" prefHeight="10.0" prefWidth="237.0">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </TextField>
+                  <Label fx:id="lb_AM" text="Apellido materno">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="txt_AM" prefHeight="10.0" prefWidth="237.0">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </TextField>
+                  <Label fx:id="lb_NumTEL" text="Numero de telefono">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="txt_NumTEL" prefHeight="10.0" prefWidth="237.0">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </TextField>
+                  <Label fx:id="lb_RFC" text="RFC">
+                     <VBox.margin>
+                        <Insets top="10.0" />
+                     </VBox.margin>
+                  </Label>
+                  <TextField fx:id="txt_RFC" prefHeight="10.0" prefWidth="237.0">
+                     <font>
+                        <Font size="18.0" />
+                     </font>
+                  </TextField>
+                  <Button fx:id="btn_Rgistar" mnemonicParsing="false" text="Registrar">
+                     <VBox.margin>
+                        <Insets left="20.0" top="20.0" />
+                     </VBox.margin>
+                  </Button>
+               </children>
+            </VBox>
+         </children>
+      </VBox>
    </children>
-</Pane>
+</AnchorPane>
