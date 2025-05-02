@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.geometry.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.PanelPrincipalController"
+            stylesheets="@../css/estilos.css">
+    <children>
+        <VBox alignment="TOP_CENTER" spacing="20.0" prefWidth="600.0" prefHeight="400.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
+            <!-- Barra de Navegación -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="barra-navegacion">
+                <padding>
+                    <Insets top="10.0" right="20.0" bottom="10.0" left="20.0"/>
+                </padding>
+                <Button text="Clientes" onAction="#abrirClientes" styleClass="boton-nav"/>
+                <Button text="Eventos" onAction="#abrirEventos" styleClass="boton-nav"/>
+                <Button text="Reservas" onAction="#abrirReservas" styleClass="boton-nav"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Cerrar sesión" onAction="#cerrarSesion" styleClass="button-salir"/>
+            </HBox>
+
+            <!-- Contenido Principal -->
+            <VBox alignment="CENTER" spacing="10.0" styleClass="contenedor-bienvenida">
+                <Label text="¡Bienvenido¡" styleClass="titulo-bienvenida"/>
+                <Label fx:id="lblNombreUsuario" text="Empleado: ---" styleClass="texto-bienvenida"/>
+                <Label text="¿Qué deseas realizar hoy?" styleClass="texto-bienvenida"/>
+            </VBox>
+        </VBox>
+    </children>
+</AnchorPane>
