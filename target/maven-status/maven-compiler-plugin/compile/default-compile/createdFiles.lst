@@ -1,9 +1,13 @@
 controladores\RegistroClienteController.class
 controladores\LoginController.class
+controladores\contrato.class
+controladores\presupuesto.class
 dao\LoginDAO.class
+controladores\contrato$Extra.class
+controladores\EventosController.class
 module-info.class
 controladores\Encriptador.class
-controladores\VistaPaquetesController.class
+controladores\presupuesto$Extra.class
 controladores\App.class
 dao\MensajesDAO.class
 controladores\PanelPrincipalController.class

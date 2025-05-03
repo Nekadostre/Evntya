@@ -20,28 +20,19 @@ public class PanelPrincipalController {
     private void abrirClientes() throws IOException{
     App.setRoot("RegistroCliente");
 }
-
     @FXML
-    public void abrirReservas(ActionEvent event) throws Exception {
-        abrirVentana("/vista/calendario.fxml", "Reservas");
+    private void abrirReservas() throws IOException {
+    App.setRoot("Reservas");
     }
     
     @FXML
-    public void abrirEventos(ActionEvent event) throws Exception {
-        abrirVentana("/vista/VistaEventos.fxml", "Reservas");
+    private void abrirEventos() throws IOException {
+    App.setRoot("Eventos");
     }
+   
 
-    public void abrirPaquetes(ActionEvent event) throws Exception {
-    Parent root = FXMLLoader.load(getClass().getResource("/VistaPaquetes.fxml"));
-    Stage stage = new Stage();
-    stage.setScene(new Scene(root));
-    stage.setTitle("Gestión de Paquetes");
-    stage.show();
-    }
-    
     @FXML
     private void cerrarSesion() {
-    // Cierra la ventana actual
     Stage stage = (Stage) lblNombreUsuario.getScene().getWindow();
     stage.close();
     }
@@ -54,8 +45,7 @@ public class PanelPrincipalController {
         stage.setScene(new Scene(root));
         stage.setTitle(titulo);
         stage.show();
-    } catch (Exception e) {
-        e.printStackTrace();
+    } catch (IOException e) {
     }
 }
 

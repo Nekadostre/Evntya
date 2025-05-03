@@ -7,6 +7,7 @@ import javafx.scene.control.Alert.AlertType;
 import javafx.event.ActionEvent;
 import javafx.scene.control.Label;
 import database.Conexion;
+import java.io.IOException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -83,6 +84,12 @@ public class RegistroClienteController {
 
     private boolean validarRFC(String rfc) {
         return rfc.matches("^[A-ZÑ&]{3,4}\\d{6}[A-Z0-9]{3}$");
+    }
+    
+     @FXML
+    private void volverAlPanelPrincipal() throws IOException 
+    {
+    App.setRoot("PanelPrincipal");
     }
 
     private void limpiarCampos() {
