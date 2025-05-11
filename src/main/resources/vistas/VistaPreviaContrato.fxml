@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="controladores.VistaPreviaContratoController"
+      spacing="15" alignment="CENTER"
+      stylesheets="@../css/estilos.css">
+
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Vista Previa del Contrato" styleClass="titulo-contrato"/>
+
+    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="contenedor-contrato">
+
+        <Label fx:id="lblFechaContrato" text="Fecha de contrato: " styleClass="label-contrato"/>
+        <Label fx:id="lblNombreCliente" text="Nombre del cliente: " styleClass="label-contrato"/>
+
+        <HBox spacing="5">
+            <Label text="Nombre del festejado:" styleClass="label-contrato"/>
+            <TextField fx:id="txtNombreFestejado" promptText="Nombre del festejado" styleClass="campo-festejado"/>
+        </HBox>
+
+        <Label fx:id="lblFechaEvento" text="Fecha del evento: " styleClass="label-contrato"/>
+
+        <Label text="Horario del evento:" styleClass="label-contrato"/>
+        <HBox spacing="10">
+            <RadioButton text="Matutino" fx:id="rbMatutino" styleClass="radio-button"/>
+            <RadioButton text="Vespertino" fx:id="rbVespertino" styleClass="radio-button"/>
+        </HBox>
+
+        <Label fx:id="lblPaquete" text="Paquete seleccionado: " styleClass="label-contrato"/>
+
+        <Label text="Forma de pago:" styleClass="label-contrato"/>
+        <ComboBox fx:id="cbFormaPago" styleClass="combo-pago"/>
+
+        <Label text="Plazos:" styleClass="label-contrato"/>
+        <ComboBox fx:id="cbPlazos" styleClass="combo-plazos"/>
+
+        <Label fx:id="lblExtras" text="Extras: " styleClass="label-contrato"/>
+        <Label fx:id="lblTotal" text="Total: $0.00 MXN" styleClass="etiqueta-total-contrato"/>
+    </VBox>
+
+    <HBox spacing="20" alignment="CENTER">
+        <Button text="Imprimir contrato" onAction="#handleImprimir"/>
+        <Button text="Enviar por correo" onAction="#handleEnviarCorreo"/>
+        <Button text="SALIR" onAction="#handleSalir"/>
+    </HBox>
+</VBox>

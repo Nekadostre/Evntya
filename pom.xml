@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
@@ -5,14 +6,16 @@
     <groupId>com.example</groupId>
     <artifactId>test</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>Eventya</name>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <javafx.version>23.0.1</javafx.version>
+        <javafx.version>24.0.1</javafx.version>
+        <maven.compiler.release>11</maven.compiler.release>
     </properties>
+
     <dependencies>
-        <!-- JavaFX Dependencias - todas con la misma versión -->
+        <!-- JavaFX (sin duplicados) -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -23,29 +26,36 @@
             <artifactId>javafx-fxml</artifactId>
             <version>${javafx.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-graphics</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.openjfx</groupId>
-            <artifactId>javafx-base</artifactId>
-            <version>${javafx.version}</version>
-        </dependency>
-        <!-- Otras dependencias -->
+
+        <!-- MySQL Connector -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <version>9.3.0</version>
         </dependency>
+
+        <!-- Hansolo FX Countries -->
+        <dependency>
+            <groupId>eu.hansolo.fx</groupId>
+            <artifactId>countries</artifactId>
+            <version>17.0.12</version>
+        </dependency>
+
+        <!-- Spring Boot Maven plugin as dependency (unusual, but keeping as-is) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>3.4.0</version>
+            <type>jar</type>
+        </dependency>
         <dependency>
             <groupId>org.jfxcore</groupId>
-            <artifactId>javafx-graphics</artifactId>
+            <artifactId>javafx-fxml</artifactId>
             <version>18-ea+1</version>
             <type>jar</type>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -78,5 +88,4 @@
             </plugin>
         </plugins>
     </build>
-    <name>Eventya</name>
 </project>

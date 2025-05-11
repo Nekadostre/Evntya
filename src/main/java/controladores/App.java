@@ -7,25 +7,27 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 import javafx.geometry.Rectangle2D;
 import javafx.stage.Screen;
+import javafx.scene.image.Image;
+
 
 
 import java.io.IOException;
 import static javafx.application.Application.launch;
 
-/**
- * JavaFX App
- */
+
 public class App extends Application {
 
     private static Scene scene;
 
     @Override
-    public void start(Stage stage) throws IOException {
+    public void start(Stage stage) throws IOException 
+    {
     scene = new Scene(loadFXML("LoginView"), 640, 480);
     scene.getStylesheets().add(App.class.getResource("/css/estilos.css").toExternalForm());
     Screen screen = Screen.getPrimary();
     Rectangle2D bounds = screen.getVisualBounds();
     
+    stage.getIcons().add(new Image(getClass().getResourceAsStream("/img/favicon.png")));
     stage.setX(bounds.getMinX());
     stage.setY(bounds.getMinY());
     stage.setWidth(bounds.getWidth());

@@ -8,23 +8,25 @@
 <?import javafx.scene.layout.VBox?>
 
 <AnchorPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="controladores.contrato"
+            fx:controller="controladores.Contrato"
             stylesheets="@css/estilos.css" prefWidth="1000.0" prefHeight="600.0">
     <HBox alignment="CENTER" spacing="40.0"
           AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="20.0"
           AnchorPane.rightAnchor="20.0" AnchorPane.bottomAnchor="20.0">
 
-        <!-- COLUMNA DE PAQUETES A LA IZQUIERDA (VERSIÓN ORIGINAL) -->
+        <!-- COLUMNA DE PAQUETES A LA IZQUIERDA (ACTUALIZADA) -->
         <VBox spacing="15.0" prefWidth="450.0">
-            <Label text="Paquete 1" styleClass="etiqueta-paquete" />
-            <ListView fx:id="ListaPaquete1" prefHeight="250.0" styleClass="lista-paquete" />
+            <Label fx:id="lblPaq1" text="Paquete 1" styleClass="etiqueta-paquete" />
+            <ListView fx:id="ListaPaquete1" prefHeight="230.0" styleClass="lista-paquete" />
+            <Label fx:id="lblPrecioPaq1" text="Precio: $0" styleClass="etiqueta-precio" style="-fx-font-weight: bold;" />
             <HBox spacing="10.0" alignment="CENTER">
                 <Button fx:id="btnSelecPaq1" text="Seleccionar" onAction="#seleccionarPaquete1" styleClass="boton-paquete" />
                 <Button fx:id="btnQuitarPaq1" text="Quitar" onAction="#quitarPaquete1" styleClass="boton-paquete-alt" />
             </HBox>
 
-            <Label text="Paquete 2" styleClass="etiqueta-paquete" />
-            <ListView fx:id="ListaPaquete2" prefHeight="250.0" styleClass="lista-paquete" />
+            <Label fx:id="lblPaq2" text="Paquete 2" styleClass="etiqueta-paquete" />
+            <ListView fx:id="ListaPaquete2" prefHeight="230.0" styleClass="lista-paquete" />
+            <Label fx:id="lblPrecioPaq2" text="Precio: $0" styleClass="etiqueta-precio" style="-fx-font-weight: bold;" />
             <HBox spacing="10.0" alignment="CENTER">
                 <Button fx:id="btnSelecPaq2" text="Seleccionar" onAction="#seleccionarPaquete2" styleClass="boton-paquete" />
                 <Button fx:id="btnQuitarPaq2" text="Quitar" onAction="#quitarPaquete2" styleClass="boton-paquete-alt" />
@@ -32,7 +34,7 @@
         </VBox>
 
         <!-- COLUMNA DE EXTRAS A LA DERECHA (CON AJUSTES PARA TÍTULOS COMPLETOS) -->
-        <VBox spacing="10.0" prefWidth="450.0">
+        <VBox spacing="10.0" prefWidth="550.0">
             <!-- Título de extras con más espacio -->
             <Label text="Extras Disponibles" styleClass="etiqueta-titulo-extras" />
             
@@ -40,9 +42,9 @@
             <HBox spacing="10.0" alignment="CENTER_LEFT">
                 <Label fx:id="lblExtra1" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
                 <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra1" text="+" onAction="#handleAgregarExtra1" styleClass="boton-operacion" />
-                    <Button fx:id="btnQuitarExtra1" text="-" onAction="#handleQuitarExtra1" styleClass="boton-operacion" />
-                    <TextField fx:id="txtExtras1" styleClass="caja-cantidad" prefWidth="50.0" />
+                    <Button fx:id="btnAgregarExtra1" text="+" onAction="#handleAgregarExtra1" styleClass="boton-paquete"/>
+                    <Button fx:id="btnQuitarExtra1" text="-" onAction="#handleQuitarExtra1" styleClass="boton-paquete-alt"/>
+                    <TextField fx:id="txtExtras1" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
                 </HBox>
             </HBox>
 
@@ -50,9 +52,9 @@
             <HBox spacing="10.0" alignment="CENTER_LEFT">
                 <Label fx:id="lblExtra2" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
                 <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra2" text="+" onAction="#handleAgregarExtra2" styleClass="boton-operacion" />
-                    <Button fx:id="btnQuitarExtra2" text="-" onAction="#handleQuitarExtra2" styleClass="boton-operacion" />
-                    <TextField fx:id="txtExtras2" styleClass="caja-cantidad" prefWidth="50.0" />
+                    <Button fx:id="btnAgregarExtra2" text="+" onAction="#handleAgregarExtra2" styleClass="boton-paquete" />
+                    <Button fx:id="btnQuitarExtra2" text="-" onAction="#handleQuitarExtra2" styleClass="boton-paquete-alt" />
+                    <TextField fx:id="txtExtras2" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
                 </HBox>
             </HBox>
 
@@ -60,9 +62,9 @@
             <HBox spacing="10.0" alignment="CENTER_LEFT">
                 <Label fx:id="lblExtra3" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
                 <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra3" text="+" onAction="#handleAgregarExtra3" styleClass="boton-operacion" />
-                    <Button fx:id="btnQuitarExtra3" text="-" onAction="#handleQuitarExtra3" styleClass="boton-operacion" />
-                    <TextField fx:id="txtExtras3" styleClass="caja-cantidad" prefWidth="50.0" />
+                    <Button fx:id="btnAgregarExtra3" text="+" onAction="#handleAgregarExtra3" styleClass="boton-paquete" />
+                    <Button fx:id="btnQuitarExtra3" text="-" onAction="#handleQuitarExtra3" styleClass="boton-paquete-alt" />
+                    <TextField fx:id="txtExtras3" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
                 </HBox>
             </HBox>
 
@@ -70,9 +72,9 @@
             <HBox spacing="10.0" alignment="CENTER_LEFT">
                 <Label fx:id="lblExtra4" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
                 <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra4" text="+" onAction="#handleAgregarExtra4" styleClass="boton-operacion" />
-                    <Button fx:id="btnQuitarExtra4" text="-" onAction="#handleQuitarExtra4" styleClass="boton-operacion" />
-                    <TextField fx:id="txtExtras4" styleClass="caja-cantidad" prefWidth="50.0" />
+                    <Button fx:id="btnAgregarExtra4" text="+" onAction="#handleAgregarExtra4" styleClass="boton-paquete" />
+                    <Button fx:id="btnQuitarExtra4" text="-" onAction="#handleQuitarExtra4" styleClass="boton-paquete-alt" />
+                    <TextField fx:id="txtExtras4" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
                 </HBox>
             </HBox>
 

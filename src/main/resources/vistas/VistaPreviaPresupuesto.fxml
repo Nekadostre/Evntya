@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.geometry.Pos?>
+
+<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.VistaPreviaPresupuestoController"
+      spacing="15" alignment="CENTER" style="-fx-background-color: #F8F9FA;">
+    
+    <padding>
+        <Insets top="20" right="20" bottom="20" left="20"/>
+    </padding>
+
+    <Label text="Vista Previa del Presupuesto"
+           style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3E50;" />
+
+    <VBox spacing="10" alignment="CENTER_LEFT"
+          style="-fx-background-color: #FFFFFF; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #DADDE1;">
+        
+        <Label fx:id="lblNombreCliente" text="Nombre de cliente: "/>
+        
+        <Label text="Horario del evento:"/>
+        <HBox spacing="10">
+            <RadioButton text="Matutino" fx:id="rbMatutino"/>
+            <RadioButton text="Vespertino" fx:id="rbVespertino"/>
+        </HBox>
+
+        <Label fx:id="lblPaquete" text="Paquete seleccionado:"/>
+        <Label fx:id="lblExtras" text="Extras:"/>
+
+        <Label text="Plazos:"/>
+        <ComboBox fx:id="cbPlazos"/>
+
+        <Label text="Forma de pago:"/>
+        <ComboBox fx:id="cbMetodoPago"/>
+
+        <Label fx:id="lblTotal" text="Total: $0.00 MXN"
+               style="-fx-font-weight: bold;"/>
+    </VBox>
+
+    <HBox spacing="20" alignment="CENTER">
+        <Button text="Imprimir contrato" onAction="#handleImprimir"/>
+        <Button text="Enviar por correo" onAction="#handleEnviarCorreo"/>
+        <Button text="SALIR" onAction="#handleSalir"/>
+    </HBox>
+</VBox>

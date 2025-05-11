@@ -24,26 +24,39 @@ public class LoginController
     private Button btnIngresar;
 
     @FXML
-    private void ingresar() throws IOException{
+    private void ingresar() throws IOException
+    {
         String usuarioId = txtUsuario.getText().trim();
         String contrasena = txtContrasena.getText().trim();
 
-        if (usuarioId.isEmpty() || contrasena.isEmpty()) 
-        {
-            lblMensaje.setText("Todos los campos son obligatorios.");
-            return;
-        }
+        if (usuarioId.isEmpty() || contrasena.isEmpty()) {
+        Alert alerta = new Alert(Alert.AlertType.WARNING);
+        alerta.setTitle("Campos obligatorios");
+        alerta.setHeaderText(null);
+        alerta.setContentText("Todos los campos son obligatorios.");
+        alerta.showAndWait();
+        return;
+    }
 
-        // Obtener nombre, apellidos y rol del usuario
+
         String[] datosUsuario = LoginDAO.validarLoginConDatos(usuarioId, contrasena);
 
-        if (datosUsuario != null) 
-        {
-            String nombre = datosUsuario[0];
-            String apellidos = datosUsuario[1];
-            String rol = datosUsuario[2];
-            
-            App.setRoot("PanelPrincipal");
-        }
-    }    
+if (datosUsuario != null) 
+{
+    String nombre = datosUsuario[0];
+    String apellidos = datosUsuario[1];
+    String rol = datosUsuario[2];
+
+    App.setRoot("PanelPrincipal");
+} else 
+{
+    Alert alerta = new Alert(Alert.AlertType.ERROR);
+    alerta.setTitle("Acceso denegado");
+    alerta.setHeaderText(null);
+    alerta.setContentText("Las credenciales son incorrectas.");
+    alerta.showAndWait();
 }
+
+
+  }
+}    

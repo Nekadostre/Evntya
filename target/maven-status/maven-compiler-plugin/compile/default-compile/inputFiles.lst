@@ -1,11 +1,14 @@
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\App.java
-C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\contrato.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\Contrato.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\Encriptador.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\EventosController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\LoginController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\PanelPrincipalController.java
-C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\presupuesto.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\Presupuesto.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\RegistroClienteController.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\ReservasController.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaPreviaContratoController.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaPreviaPresupuestoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\LoginDAO.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\MensajesDAO.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\database\Conexion.java

@@ -7,7 +7,7 @@ import java.sql.SQLException;
 public class Conexion {
     private static final String URL = "jdbc:mysql://srv1711.hstgr.io:3306/u984674772_dbsegunda?useUnicode=true&characterEncoding=UTF-8";
     private static final String USER = "u984674772_root";
-    private static final String PASSWORD = "Eventya321@";
+    private static final String PASSWORD = "Forgestudio4321$";
 
     public static Connection conectar() throws SQLException{
         try {
