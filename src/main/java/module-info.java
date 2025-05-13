@@ -1,10 +1,12 @@
-module app {
+module com.example.eventya {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
-    requires javafx.graphics;
-    requires javafx.base;
 
     opens controladores to javafx.fxml;
+    opens modelos to javafx.base;
+    opens vistas to javafx.fxml;
+
     exports controladores;
+    exports modelos;
 }

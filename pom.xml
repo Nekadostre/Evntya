@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <groupId>com.example</groupId>
     <artifactId>test</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -10,12 +10,12 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>24.0.1</javafx.version>
+        <javafx.version>17.0.2</javafx.version>
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
     <dependencies>
-        <!-- JavaFX (sin duplicados) -->
+        <!-- JavaFX -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -27,37 +27,24 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- MySQL Connector -->
+        <!-- MySQL JDBC Connector -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
             <version>9.3.0</version>
         </dependency>
 
-        <!-- Hansolo FX Countries -->
+        <!-- Hansolo FX Countries (si realmente lo usas) -->
         <dependency>
             <groupId>eu.hansolo.fx</groupId>
             <artifactId>countries</artifactId>
             <version>17.0.12</version>
         </dependency>
-
-        <!-- Spring Boot Maven plugin as dependency (unusual, but keeping as-is) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <version>3.4.0</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>org.jfxcore</groupId>
-            <artifactId>javafx-fxml</artifactId>
-            <version>18-ea+1</version>
-            <type>jar</type>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <!-- Compilador Java -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -66,16 +53,14 @@
                     <release>11</release>
                 </configuration>
             </plugin>
+
+            <!-- JavaFX Plugin para ejecución -->
             <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>controladores.App</mainClass>
-                    <options>
-                        <option>--add-modules</option>
-                        <option>javafx.controls,javafx.fxml,javafx.base,javafx.graphics</option>
-                    </options>
                 </configuration>
                 <executions>
                     <execution>

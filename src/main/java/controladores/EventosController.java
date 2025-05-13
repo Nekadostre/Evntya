@@ -19,7 +19,7 @@ public class EventosController {
     @FXML
     private void buttonPresupuesto() throws IOException 
     {
-        App.setRoot("Presupuesto");
+        App.setRoot("ClientePresupuestoView");
     }
 
     @FXML

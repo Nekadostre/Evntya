@@ -12,7 +12,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
 
-public class Presupuesto implements Initializable { 
+public class PaquetesPresupuestoController implements Initializable { 
     @FXML private ListView<String> ListaPaquete1, ListaPaquete2;
     @FXML private TextField txtPaq, txtExtras1, txtExtras2, txtExtras3, txtExtras4;
     @FXML private TextField txtTotPaq, txtPresupTot, txtTotExtras;
@@ -81,32 +81,26 @@ public class Presupuesto implements Initializable {
          ResultSet rs = stmt.executeQuery()) {
 
         while (rs.next()) {
-            String nombre = rs.getString("nombre"); // Ej: "Paquete 1"
-            String descripcion = rs.getString("descripcion"); // Ej: "Cancha. Servicios: 5h, mesas, sillas, etc."
+            String nombre = rs.getString("nombre");
+            String descripcion = rs.getString("descripcion"); 
             double precio = rs.getDouble("precio");
 
-            // Solo extraer las horas de servicio para ponerlas en el título
             String detalleHoras = "";
             List<String> detalles = new ArrayList<>();
             
             for (String detalle : descripcion.split(", ")) {
                 if (detalle.toLowerCase().contains("servicio") || detalle.toLowerCase().contains("hora")) {
-                    // Solo queremos la parte de "Servicios: 5h" sin "Cancha." o "Juegos mesa."
                     if (detalle.contains(":")) {
-                        // Si contiene dos puntos, tomamos solo la parte de "Servicios: 5h"
                         detalleHoras = detalle.substring(detalle.indexOf(":")).trim();
-                        // Aseguramos que empiece con "Servicios"
                         detalleHoras = "Servicios" + detalleHoras;
                     } else {
                         detalleHoras = detalle.trim();
                     }
                 } else {
-                    // Agregar todos los demás detalles a la lista
                     detalles.add("  • " + detalle.trim());
                 }
             }
             
-            // Asegurarnos que Cancha y juegos de mesa aparezcan en la lista
             if (!listContainsCaseInsensitive(detalles, "cancha")) {
                 detalles.add(0, "  • Cancha");
             }
@@ -115,12 +109,10 @@ public class Presupuesto implements Initializable {
                 detalles.add("  • Juegos de mesa");
             }
 
-            // Agregar al ListView correspondiente y al Label
             if (nombre.equalsIgnoreCase("Paquete 1")) {
                 lblPaq1.setText(nombre + " (" + detalleHoras + ")");
                 ListaPaquete1.getItems().clear();
                 ListaPaquete1.getItems().addAll(detalles); 
-                // Ahora mostramos el precio fuera de la lista en su propio label
                 if (lblPrecioPaq1 != null) {
                     lblPrecioPaq1.setText("Precio: $" + precio);
                 }
@@ -128,7 +120,6 @@ public class Presupuesto implements Initializable {
                 lblPaq2.setText(nombre + " (" + detalleHoras + ")");
                 ListaPaquete2.getItems().clear();
                 ListaPaquete2.getItems().addAll(detalles);
-                // Ahora mostramos el precio fuera de la lista en su propio label
                 if (lblPrecioPaq2 != null) {
                     lblPrecioPaq2.setText("Precio: $" + precio);
                 }
@@ -140,7 +131,6 @@ public class Presupuesto implements Initializable {
     }
 }
 
-// Método auxiliar para verificar si una lista contiene una cadena (ignorando mayúsculas/minúsculas)
 private boolean listContainsCaseInsensitive(List<String> list, String searchStr) {
     for (String item : list) {
         if (item.toLowerCase().contains(searchStr.toLowerCase())) {
@@ -277,7 +267,6 @@ private boolean listContainsCaseInsensitive(List<String> list, String searchStr)
     }
 
     private void guardarSeleccion() {
-        // Método para guardar si se desea
     }
 
     private void mostrarAlerta(String titulo, String mensaje) {
