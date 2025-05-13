@@ -10,7 +10,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>17.0.2</javafx.version>
+        <javafx.version>24.0.1</javafx.version>
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
@@ -34,11 +34,11 @@
             <version>9.3.0</version>
         </dependency>
 
-        <!-- Hansolo FX Countries (si realmente lo usas) -->
+        <!-- Hansolo FX Countries -->
         <dependency>
             <groupId>eu.hansolo.fx</groupId>
             <artifactId>countries</artifactId>
-            <version>17.0.12</version>
+            <version>21.0.19</version>
         </dependency>
     </dependencies>
 
@@ -61,6 +61,7 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>controladores.App</mainClass>
+                    <module>com.example.eventya</module>
                 </configuration>
                 <executions>
                     <execution>

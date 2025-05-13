@@ -1,0 +1,4 @@
+--patch-module
+com.example.eventya=_
+--add-reads
+com.example.eventya=ALL-UNNAMED
