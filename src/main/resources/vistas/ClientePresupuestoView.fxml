@@ -30,7 +30,8 @@
                     <TableColumn fx:id="colRFC" text="RFC" prefWidth="150" />
                 </columns>
             </TableView>
-            <Button text="Siguiente" onAction="#seleccionarCliente" />
+            <Button text="Siguiente" onAction="#irAPaquetesPresupuesto" />
+            <Button text="Seleccionar" onAction="#seleccionarCliente" />
             <Button text="Regresar" onAction="#handleRegresar" />
         </VBox>
 

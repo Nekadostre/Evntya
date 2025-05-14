@@ -2,13 +2,16 @@ controladores\LoginController.class
 controladores\ReservasController$ReservaDetalle.class
 controladores\ReservasController.class
 controladores\GenerarContratoController.class
-controladores\VistaPreviaContratoController.class
+modelos\PaqueteTemporal.class
 controladores\PaquetesPresupuestoController.class
 controladores\VistaPreviaPresupuestoController.class
+modelos\PresupuestoTemporal.class
 modelos\Cliente.class
 module-info.class
+controladores\VistaContratoController.class
 controladores\PanelPrincipalController.class
 database\Conexion.class
+dao\PresupuestoDAO.class
 dao\LoginDAO.class
 controladores\ClientePresupuestoController.class
 controladores\ClientePresupuestoController$1.class

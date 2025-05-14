@@ -11,8 +11,10 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.control.Alert.AlertType;
+import modelos.PaqueteTemporal;
 
-public class PaquetesPresupuestoController implements Initializable { 
+public class PaquetesPresupuestoController implements Initializable {
+    private int idPaqueteSeleccionado = -1; 
     @FXML private ListView<String> ListaPaquete1, ListaPaquete2;
     @FXML private TextField txtPaq, txtExtras1, txtExtras2, txtExtras3, txtExtras4;
     @FXML private TextField txtTotPaq, txtPresupTot, txtTotExtras;
@@ -217,7 +219,8 @@ private boolean listContainsCaseInsensitive(List<String> list, String searchStr)
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) {
-                txtPaq.setText(nombrePaquete + " (ID: " + rs.getInt("id") + ")");
+                idPaqueteSeleccionado = rs.getInt("id");
+                txtPaq.setText(nombrePaquete + " (ID: " + idPaqueteSeleccionado + ")");
                 txtTotPaq.setText("$" + rs.getDouble("precio"));
                 actualizarPresupuestoTotal();
             }
@@ -247,12 +250,14 @@ private boolean listContainsCaseInsensitive(List<String> list, String searchStr)
     @FXML private void handleQuitarExtra3() { actualizarExtra(2, -1); }
     @FXML private void handleQuitarExtra4() { actualizarExtra(3, -1); }
 
-    @FXML private void irASiguienteVista() throws IOException {
-        if (validarSeleccion()) {
-            guardarSeleccion();
-            App.setRoot("VistaPreviaPresupuesto");
+    @FXML
+        private void irAVistaPrevia() throws IOException {
+            if (validarSeleccion()) {
+                guardarSeleccion(); // Aquí se guardan todos los datos en PaqueteTemporal
+                App.setRoot("VistaPreviaPresupuesto");
+            }
         }
-    }
+
 
     @FXML private void handleRegresarButtonAction() throws IOException {
         App.setRoot("Eventos");
@@ -267,7 +272,23 @@ private boolean listContainsCaseInsensitive(List<String> list, String searchStr)
     }
 
     private void guardarSeleccion() {
+    String nombrePaquete = txtPaq.getText();
+    double precioPaquete = Double.parseDouble(txtTotPaq.getText().replace("$", ""));
+    double totalGeneral = Double.parseDouble(txtPresupTot.getText().replace("$", ""));
+
+    StringBuilder textoExtras = new StringBuilder();
+    for (Extra extra : extras) {
+            System.out.println("Extra: " + extra.nombre + ", cantidad: " + extra.cantidad);
+            if (extra.cantidad > 0) {
+            textoExtras.append(String.format("- %s x%d ($%.2f)%n", extra.nombre, extra.cantidad, (double) extra.cantidad * extra.precio));
+        }
     }
+
+    PaqueteTemporal.getInstancia().setDatos(idPaqueteSeleccionado, nombrePaquete, precioPaquete);
+    PaqueteTemporal.getInstancia().setExtras(textoExtras.toString().trim());
+    PaqueteTemporal.getInstancia().setTotal(totalGeneral);
+}
+
 
     private void mostrarAlerta(String titulo, String mensaje) {
         Alert alert = new Alert(AlertType.ERROR);

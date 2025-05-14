@@ -1,54 +1,147 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
-<?import javafx.geometry.Pos?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.text.Font?>
 
-<VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="controladores.VistaPreviaContratoController"
-      spacing="15" alignment="CENTER"
-      stylesheets="@../css/estilos.css">
-
-    <padding>
-        <Insets top="20" right="20" bottom="20" left="20"/>
-    </padding>
-
-    <Label text="Vista Previa del Contrato" styleClass="titulo-contrato"/>
-
-    <VBox spacing="10" alignment="CENTER_LEFT" styleClass="contenedor-contrato">
-
-        <Label fx:id="lblFechaContrato" text="Fecha de contrato: " styleClass="label-contrato"/>
-        <Label fx:id="lblNombreCliente" text="Nombre del cliente: " styleClass="label-contrato"/>
-
-        <HBox spacing="5">
-            <Label text="Nombre del festejado:" styleClass="label-contrato"/>
-            <TextField fx:id="txtNombreFestejado" promptText="Nombre del festejado" styleClass="campo-festejado"/>
-        </HBox>
-
-        <Label fx:id="lblFechaEvento" text="Fecha del evento: " styleClass="label-contrato"/>
-
-        <Label text="Horario del evento:" styleClass="label-contrato"/>
-        <HBox spacing="10">
-            <RadioButton text="Matutino" fx:id="rbMatutino" styleClass="radio-button"/>
-            <RadioButton text="Vespertino" fx:id="rbVespertino" styleClass="radio-button"/>
-        </HBox>
-
-        <Label fx:id="lblPaquete" text="Paquete seleccionado: " styleClass="label-contrato"/>
-
-        <Label text="Forma de pago:" styleClass="label-contrato"/>
-        <ComboBox fx:id="cbFormaPago" styleClass="combo-pago"/>
-
-        <Label text="Plazos:" styleClass="label-contrato"/>
-        <ComboBox fx:id="cbPlazos" styleClass="combo-plazos"/>
-
-        <Label fx:id="lblExtras" text="Extras: " styleClass="label-contrato"/>
-        <Label fx:id="lblTotal" text="Total: $0.00 MXN" styleClass="etiqueta-total-contrato"/>
-    </VBox>
-
-    <HBox spacing="20" alignment="CENTER">
-        <Button text="Imprimir contrato" onAction="#handleImprimir"/>
-        <Button text="Enviar por correo" onAction="#handleEnviarCorreo"/>
-        <Button text="SALIR" onAction="#handleSalir"/>
-    </HBox>
-</VBox>
+<AnchorPane id="AnchorPane" prefHeight="625.0" prefWidth="834.0" style="-fx-background-color: #F8F9FA;" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controladores.VistaContratoController">
+   <children>
+      <HBox layoutX="185.0" layoutY="559.0" prefHeight="33.0" prefWidth="461.0">
+         <children>
+            <Button mnemonicParsing="false" onAction="#imprimir" text="Imprimir contrato" />
+            <Button mnemonicParsing="false" onAction="#sendtomail" text="Enviar por correo" translateX="100.0" />
+            <Button mnemonicParsing="false" onAction="#exit" text="Salir" translateX="200.0" />
+         </children>
+      </HBox>
+      <Button layoutX="62.0" layoutY="30.0" mnemonicParsing="false" onAction="#regresar" text="regresar" />
+      <Label layoutX="300.0" layoutY="30.0" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3E50;" text="VISTA PREVIA CONTRATO" />
+      <HBox layoutX="62.0" layoutY="114.0" prefHeight="22.0" prefWidth="534.0">
+         <children>
+            <DatePicker fx:id="fechaContratoPicker" promptText="Fecha de contrato" />
+         </children>
+      </HBox>
+      <HBox fx:id="eventoPiker" layoutX="62.0" layoutY="247.0" prefHeight="21.0" prefWidth="534.0">
+         <children>
+            <DatePicker fx:id="fechaEventoPicker" promptText="Fecha del evento" />
+         </children>
+      </HBox>
+      <HBox layoutX="59.0" layoutY="326.0" prefHeight="23.0" prefWidth="534.0">
+         <children>
+            <Label text="Paquete seleccionado: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblPaquete" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="59.0" layoutY="449.0" prefHeight="27.0" prefWidth="534.0">
+         <children>
+            <Label text="Extras: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblExtras" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="59.0" layoutY="410.0" prefHeight="24.0" prefWidth="534.0">
+         <children>
+            <Label text="Plazos: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblPlazos" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="59.0" layoutY="366.0" prefHeight="26.0" prefWidth="534.0">
+         <children>
+            <Label text="Formas de pago: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblPago" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="195.0" layoutY="497.0" prefHeight="17.0" prefWidth="369.0">
+         <children>
+            <Label style="-fx-font-weight: bold;" text="Total: $">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+            </Label>
+            <Label fx:id="lblTotal" style="-fx-font-weight: bold;" text=" - ">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+            </Label>
+            <Label style="-fx-font-weight: bold;" text="MXN">
+               <opaqueInsets>
+                  <Insets />
+               </opaqueInsets>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="62.0" layoutY="290.0" prefHeight="22.0" prefWidth="534.0">
+         <children>
+            <Label text="Horario del evento: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblHorario" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+      <HBox layoutX="62.0" layoutY="195.0" prefHeight="33.0" prefWidth="534.0">
+         <children>
+            <Label text="Nombre del Festejado: " translateY="5.0">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <TextField fx:id="txtFestejado" prefHeight="26.0" prefWidth="318.0" />
+         </children>
+      </HBox>
+      <HBox layoutX="62.0" layoutY="159.0" prefHeight="19.0" prefWidth="575.0">
+         <children>
+            <Label text="Nombre del cliente: ">
+               <font>
+                  <Font name="Lucida Console" size="15.0" />
+               </font>
+            </Label>
+            <Label fx:id="lblNombre" prefHeight="17.0" prefWidth="17.0" text="-" textFill="#c501e2">
+               <font>
+                  <Font size="13.0" />
+               </font>
+            </Label>
+         </children>
+      </HBox>
+   </children>
+</AnchorPane>

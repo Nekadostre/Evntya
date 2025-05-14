@@ -355,3 +355,34 @@
     -fx-text-fill: #27ae60;
     -fx-padding: 8 0;
 }
+
+
+
+
+.btn-regresar {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.btn-imprimir {
+    -fx-background-color: #f1c40f;
+    -fx-text-fill: black;
+}
+
+.btn-correo {
+    -fx-background-color: #ff69b4;
+    -fx-text-fill: white;
+}
+
+.btn-salir {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+
+
+
+
+
+
+

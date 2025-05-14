@@ -10,7 +10,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>24.0.1</javafx.version>
+        <javafx.version>21.0.3</javafx.version>
         <maven.compiler.release>11</maven.compiler.release>
     </properties>
 
@@ -40,7 +40,14 @@
             <artifactId>countries</artifactId>
             <version>21.0.19</version>
         </dependency>
+        <dependency>
+        <groupId>org.apache.pdfbox</groupId>
+        <artifactId>pdfbox</artifactId>
+        <version>2.0.27</version>
+      </dependency>
+
     </dependencies>
+    
 
     <build>
         <plugins>

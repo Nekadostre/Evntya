@@ -93,7 +93,7 @@
 
             <HBox spacing="10.0" alignment="CENTER">
                 <Button fx:id="btnRegresar" text="← Regresar" onAction="#handleRegresarButtonAction" styleClass="boton-nav" />
-                <Button fx:id="btnSiguiente" text="Siguiente →" onAction="#irASiguienteVista" styleClass="boton-nav" />
+                <Button fx:id="btnSiguiente" text="Siguiente →" onAction="#irAVistaPrevia" styleClass="boton-nav" />
             </HBox>
         </VBox>
     </HBox>

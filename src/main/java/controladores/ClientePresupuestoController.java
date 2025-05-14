@@ -139,7 +139,25 @@ private void handleRegresar() {
     }
 }
 
-
+@FXML
+private void irAPaquetesPresupuesto() {
+    Cliente cliente = tablaClientes.getSelectionModel().getSelectedItem();
+    if (cliente != null) {
+        ClienteTemporal.getInstancia().setDatos(
+            cliente.getId(),
+            cliente.getNombre(),
+            cliente.getApellido(),
+            cliente.getRfc()
+        );
+        try {
+            App.setRoot("PaquetesPresupuesto"); // <-- Nombre correcto del FXML
+        } catch (IOException e) {
+            mostrarAlerta("No se pudo abrir la vista de paquetes.", Alert.AlertType.ERROR);
+        }
+    } else {
+        mostrarAlerta("Selecciona o registra un cliente antes de continuar.", Alert.AlertType.WARNING);
+    }
+}
 
     private void cargarClientes() {
     listaClientes.clear();
