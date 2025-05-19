@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.CalendarioContratoController">
+    <top>
+        <VBox alignment="TOP_CENTER" spacing="10">
+            <padding><Insets top="20" right="20" bottom="10" left="20"/></padding>
+            <HBox alignment="CENTER" spacing="10">
+                <Label text="Buscar cliente:" />
+                <TextField fx:id="txtBuscar" onKeyReleased="#buscarCliente" promptText="Nombre, RFC, CURP..." />
+            </HBox>
+        </VBox>
+    </top>
+
+    <left>
+        <VBox alignment="TOP_CENTER" spacing="5">
+            <padding><Insets top="20" left="20"/></padding>
+            <Label text="Resultados" style="-fx-font-weight: bold;" />
+            <ListView fx:id="listaResultados" prefWidth="200" prefHeight="300" />
+        </VBox>
+    </left>
+
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="20">
+            <HBox alignment="CENTER" spacing="10">
+                <Button text="◀" onAction="#mesAnterior" />
+                <Label fx:id="labelMes" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
+                <Button text="▶" onAction="#mesSiguiente" />
+            </HBox>
+            <GridPane fx:id="gridCalendario" hgap="10" vgap="10" alignment="CENTER" />
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER" spacing="20">
+            <padding><Insets top="20" bottom="20"/></padding>
+            <Button text="Siguiente" onAction="#accionSiguiente" />
+            <Button text="Regresar" onAction="#accionRegresar" />
+        </HBox>
+    </bottom>
+</BorderPane>

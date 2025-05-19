@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.ClientesController" prefWidth="800" prefHeight="600">
+    <children>
+        <VBox alignment="CENTER" layoutX="20" layoutY="20" prefWidth="760" prefHeight="560" AnchorPane.topAnchor="20" AnchorPane.bottomAnchor="20" AnchorPane.leftAnchor="20" AnchorPane.rightAnchor="20">
+        <TableView fx:id="tablaClientes" layoutX="20" layoutY="20" prefWidth="700" prefHeight="560">
+            <columns>
+                <TableColumn fx:id="colNombre" text="Nombre" prefWidth="200" />
+                <TableColumn fx:id="colApellidos" text="Apellidos" prefWidth="200" />
+                <TableColumn fx:id="colFecha" text="Fecha Presupuesto" prefWidth="200" />
+                <TableColumn fx:id="colPaquete" text="Paquete" prefWidth="200" />
+                <TableColumn fx:id="colMonto" text="Monto" prefWidth="200" />
+                <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="100" />
+            </columns>
+        </TableView>
+        <HBox layoutX="600" layoutY="800" spacing="25">
+            <Button text="Regresar" onAction="#accionRegresar" styleClass="boton-regresar" prefWidth="150" />
+        </HBox>
+        </VBox>
+    </children>
+</AnchorPane>

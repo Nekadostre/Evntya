@@ -18,7 +18,7 @@ public class PanelPrincipalController {
 }
     @FXML
     private void abrirClientes() throws IOException{
-    App.setRoot("RegistroCliente");
+    App.setRoot("Clientes");
 }
     @FXML
     private void abrirReservas() throws IOException {

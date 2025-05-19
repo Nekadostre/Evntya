@@ -25,7 +25,7 @@ public class EventosController {
     @FXML
     private void buttonContrato() throws IOException 
     {
-        App.setRoot("Contrato");
+        App.setRoot("CalendarioContrato");
     }
     
     @FXML

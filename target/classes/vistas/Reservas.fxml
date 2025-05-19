@@ -1,34 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.*?>
 
-<VBox xmlns:fx="http://javafx.com/fxml"
-      alignment="CENTER"
-      spacing="10"
-      style="-fx-background-color:#F4F6F9;"
-      fx:controller="controladores.ReservasController">
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.ReservasController">
 
-    <HBox alignment="CENTER" spacing="20">
-        <padding>
-            <Insets top="10" right="10" bottom="10" left="10"/>
-        </padding>
-        <Button text="◀" onAction="#mesAnterior"/>
-        <Label fx:id="lblMesAnio"/>
-        <Button text="▶" onAction="#mesSiguiente"/>
-    </HBox>
+    <top>
+        <VBox alignment="TOP_CENTER" spacing="20">
+            <padding>
+                <Insets top="20" right="20" bottom="20" left="20" />
+            </padding>
+            <HBox alignment="CENTER" spacing="20">
+                <Button text="◀" onAction="#mesAnterior" />
+                <Label fx:id="labelMes" style="-fx-font-size: 20px; -fx-font-weight: bold;" />
+                <Button text="▶" onAction="#mesSiguiente" />
+            </HBox>
+        </VBox>
+    </top>
 
-    <GridPane fx:id="calendarioGrid" alignment="CENTER" hgap="5" vgap="5">
-        <padding>
-            <Insets top="10" right="10" bottom="10" left="10"/>
-        </padding>
-    </GridPane>
+    <center>
+        <VBox alignment="TOP_CENTER" spacing="20">
+            <GridPane fx:id="gridCalendario" hgap="10" vgap="10" alignment="CENTER">
+                <padding>
+                    <Insets top="10" right="10" bottom="10" left="10" />
+                </padding>
+            </GridPane>
+        </VBox>
+    </center>
 
-    <HBox spacing="20" alignment="CENTER">
-        <padding>
-            <Insets top="10" right="10" bottom="10" left="10"/>
-        </padding>
-        <Button fx:id="btnRegresar" text="Regresar" onAction="#handleRegresarButtonAction"/>
-    </HBox>
-</VBox>
+    <bottom>
+        <HBox alignment="CENTER">
+            <children>
+                <Button text="Regresar" onAction="#accionRegresar" />
+            </children>
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10" />
+            </padding>
+        </HBox>
+    </bottom>
+
+</BorderPane>

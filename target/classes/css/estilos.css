@@ -217,7 +217,6 @@
     -fx-background-radius: 5;
 }
 
-/* ===== RESUMEN ===== */
 .etiqueta-resumen 
 {
     -fx-font-size: 14px;
@@ -285,7 +284,6 @@
     -fx-vgap: 5px;
 }
 
-/* Opcional: reducir el tamaño de cada StackPane en cada celda del calendario */
 .stack-pane-celda {
     -fx-pref-width: 60px;
     -fx-pref-height: 60px;
@@ -357,7 +355,7 @@
 }
 
 
-
+/* ===== Botones ===== */
 
 .btn-regresar {
     -fx-background-color: #3498db;
@@ -379,6 +377,138 @@
     -fx-text-fill: white;
 }
 
+
+/* ===== Vista Clientes ===== */
+
+.titulo {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+    -fx-padding: 10 0 20 0;
+}
+
+.tabla-clientes {
+    -fx-border-color: #2980b9;
+    -fx-border-width: 2;
+    -fx-border-radius: 5;
+    -fx-background-color: #ecf0f1;
+    -fx-padding: 5;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-view .column-header {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+
+.table-view .table-row-cell:filled:selected {
+    -fx-background-color: #a3d5ff;
+}
+
+.table-view .table-cell {
+    -fx-font-size: 13px;
+}
+
+
+/* ===== Vista Calendario ===== */
+
+.titulo-principal {
+    -fx-font-size: 24px;
+    -fx-font-family: 'Comic Sans MS', cursive;
+    -fx-text-fill: #2c3e50;
+    -fx-font-weight: bold;
+}
+
+.calendario-placeholder {
+    -fx-background-color: #ecf0f1;
+    -fx-border-color: #bdc3c7;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.campo-busqueda {
+    -fx-pref-width: 250;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-font-size: 14px;
+}
+
+.btn-buscar {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-background-radius: 20;
+    -fx-font-size: 16px;
+    -fx-cursor: hand;
+}
+
+.mensaje-exito {
+    -fx-background-color: #dff0d8;
+    -fx-border-color: #3c763d;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+    -fx-alignment: center;
+}
+
+.icono-exito {
+    -fx-font-size: 18px;
+    -fx-text-fill: green;
+}
+
+.texto-exito {
+    -fx-font-size: 14px;
+    -fx-text-fill: #3c763d;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+.busqueda-box {
+    -fx-background-color: white;
+    -fx-background-radius: 20;
+    -fx-border-radius: 20;
+    -fx-padding: 10;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 6, 0, 0, 2);
+}
+
+.lista-clientes {
+    -fx-background-color: #f9f9f9;
+    -fx-border-color: #ccc;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-font-size: 13px;
+}
+
+.panel-resultados {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #dcdcdc;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.titulo-resultados {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+.lista-clientes {
+    -fx-font-size: 13px;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
 
 
 
