@@ -4,35 +4,43 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.ClientePresupuestoController" prefWidth="900.0" prefHeight="500.0">
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="controladores.ClientePresupuestoController"
+            prefWidth="1000.0" prefHeight="520.0">
+
     <HBox spacing="20" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
 
         <!-- FORMULARIO DE REGISTRO -->
         <VBox spacing="10" prefWidth="400">
             <Label text="Registrar nuevo cliente" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
             <TextField fx:id="txtNombre" promptText="Nombre(s)" />
-            <TextField fx:id="txtApellidos" promptText="Apellidos" />
+            <TextField fx:id="txtApellidoPaterno" promptText="Apellido paterno" />
+            <TextField fx:id="txtApellidoMaterno" promptText="Apellido materno (opcional)" />
             <TextField fx:id="txtCorreo" promptText="Correo electrónico" />
             <TextField fx:id="txtTelefono" promptText="Teléfono" />
             <TextField fx:id="txtRFC" promptText="RFC o CURP" />
             <Button text="Registrar cliente" onAction="#guardarCliente" />
-            <Label fx:id="lblMensaje" textFill="green" />
         </VBox>
 
         <!-- TABLA DE CLIENTES -->
-        <VBox spacing="10" prefWidth="480">
-            <Label text="Buscar cliente existente" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
-            <TextField fx:id="txtBuscar" promptText="Buscar por nombre o RFC..." />
-            <TableView fx:id="tablaClientes" prefHeight="350">
+    
+        <VBox spacing="10" prefWidth="750">
+            <TextField fx:id="txtBuscar" promptText="Buscar por nombre o RFC..." onKeyReleased="#buscarClientes" />
+        <Label text="Buscar cliente existente" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+            <TableView fx:id="tablaClientes" prefHeight="350" prefWidth="680">
                 <columns>
-                    <TableColumn fx:id="colNombre" text="Nombre" prefWidth="150" />
-                    <TableColumn fx:id="colApellido" text="Apellidos" prefWidth="150" />
+                    <TableColumn fx:id="colNombre" text="Nombre" prefWidth="120" />
+                    <TableColumn fx:id="colApellidoPaterno" text="Apellido Paterno" prefWidth="150" />
+                    <TableColumn fx:id="colApellidoMaterno" text="Apellido Materno" prefWidth="150" />
                     <TableColumn fx:id="colRFC" text="RFC" prefWidth="150" />
+                    <TableColumn fx:id="colTelefono" text="Teléfono" prefWidth="120" />
                 </columns>
             </TableView>
-            <Button text="Siguiente" onAction="#irAPaquetesPresupuesto" />
-            <Button text="Seleccionar" onAction="#seleccionarCliente" />
-            <Button text="Regresar" onAction="#handleRegresar" />
+            <HBox spacing="10" alignment="CENTER">
+                <Button text="Seleccionar" onAction="#seleccionarCliente" />
+                <Button text="Siguiente" onAction="#irAPaquetesPresupuesto" />
+                <Button text="Regresar" onAction="#handleRegresar" />
+            </HBox>
         </VBox>
 
     </HBox>

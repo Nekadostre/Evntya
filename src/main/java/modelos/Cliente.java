@@ -6,6 +6,7 @@ public class Cliente {
     private String nombre;
     private String apellidoPaterno;
     private String apellidoMaterno;
+    private String telefono;
     private String rfc;
     private String curp;
 
@@ -41,7 +42,12 @@ public class Cliente {
     public String getCurp() {
         return curp;
     }
+    
+    public String getTelefono() {
+        return telefono;
+    }
 
+    
     public String getNombreCompleto() {
         return nombre + " " + apellidoPaterno + " " + apellidoMaterno;
     }

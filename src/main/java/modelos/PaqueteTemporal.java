@@ -1,5 +1,7 @@
-
 package modelos;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PaqueteTemporal {
     private static PaqueteTemporal instancia;
@@ -9,6 +11,9 @@ public class PaqueteTemporal {
     private double precio;       // Precio del paquete
     private String extras;       // Texto de extras
     private double total;        // Total general (paquete + extras)
+    private String nombrePaquete;
+
+    private List<Extra> extrasSeleccionados = new ArrayList<>();
 
     private PaqueteTemporal() {
         this.nombre = "";
@@ -24,9 +29,13 @@ public class PaqueteTemporal {
         return instancia;
     }
 
+    public String getNombrePaquete() {
+        return nombrePaquete;
+    }
+
     public void setDatos(int id, String nombre, double precio) {
         this.id = id;
-                this.nombre = nombre;
+        this.nombre = nombre;
         this.precio = precio;
     }
 
@@ -62,10 +71,34 @@ public class PaqueteTemporal {
         this.id = id;
     }
 
+    // NUEVO: Getter y Setter de lista de extras
+    public List<Extra> getExtrasSeleccionados() {
+        return extrasSeleccionados;
+    }
+
+    public void setExtrasSeleccionados(List<Extra> extrasSeleccionados) {
+        this.extrasSeleccionados = extrasSeleccionados;
+    }
+
+    public String getResumenExtras() {
+        StringBuilder resumen = new StringBuilder();
+        for (Extra extra : extrasSeleccionados) {
+            resumen.append("- ")
+                   .append(extra.getNombre())
+                   .append(" x")
+                   .append(extra.getCantidad())
+                   .append(" ($")
+                   .append(extra.getPrecio() * extra.getCantidad())
+                   .append(")\n");
+        }
+        return resumen.toString().trim();
+    }
+
     public void reset() {
         this.nombre = "";
         this.precio = 0.0;
         this.extras = "";
         this.total = 0.0;
+        this.extrasSeleccionados.clear();
     }
 }

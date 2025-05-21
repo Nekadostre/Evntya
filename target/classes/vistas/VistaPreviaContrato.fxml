@@ -13,7 +13,7 @@
    <children>
       <HBox layoutX="185.0" layoutY="559.0" prefHeight="33.0" prefWidth="461.0">
          <children>
-            <Button mnemonicParsing="false" onAction="#imprimir" text="Imprimir contrato" />
+            <Button mnemonicParsing="false" onAction="#imprimirContrato" text="Imprimir contrato" />
             <Button mnemonicParsing="false" onAction="#sendtomail" text="Enviar por correo" translateX="100.0" />
             <Button mnemonicParsing="false" onAction="#exit" text="Salir" translateX="200.0" />
          </children>
@@ -22,12 +22,12 @@
       <Label layoutX="300.0" layoutY="30.0" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2C3E50;" text="VISTA PREVIA CONTRATO" />
       <HBox layoutX="62.0" layoutY="114.0" prefHeight="22.0" prefWidth="534.0">
          <children>
-            <DatePicker fx:id="fechaContratoPicker" promptText="Fecha de contrato" />
+            <DatePicker fx:id="fechaContratoPicker" onAction="#fechaContrato" promptText="Fecha de contrato" />
          </children>
       </HBox>
-      <HBox fx:id="eventoPiker" layoutX="62.0" layoutY="247.0" prefHeight="21.0" prefWidth="534.0">
+      <HBox layoutX="62.0" layoutY="247.0" prefHeight="21.0" prefWidth="534.0">
          <children>
-            <DatePicker fx:id="fechaEventoPicker" promptText="Fecha del evento" />
+            <DatePicker fx:id="fechaEventoPicker" onAction="#fechaEvento" promptText="Fecha del evento" />
          </children>
       </HBox>
       <HBox layoutX="59.0" layoutY="326.0" prefHeight="23.0" prefWidth="534.0">
@@ -126,7 +126,7 @@
                   <Font name="Lucida Console" size="15.0" />
                </font>
             </Label>
-            <TextField fx:id="txtFestejado" prefHeight="26.0" prefWidth="318.0" />
+            <TextField fx:id="txtFestejado" onAction="#nomFestejado" prefHeight="26.0" prefWidth="318.0" />
          </children>
       </HBox>
       <HBox layoutX="62.0" layoutY="159.0" prefHeight="19.0" prefWidth="575.0">

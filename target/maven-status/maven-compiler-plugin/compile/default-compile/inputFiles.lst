@@ -9,7 +9,7 @@ C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controlado
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\PanelPrincipalController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\PaquetesPresupuestoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\ReservasController.java
-C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaContratoController.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaPreviaClienteController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaPreviaPresupuestoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\LoginDAO.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\MensajesDAO.java
@@ -21,6 +21,7 @@ C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Cl
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\ClienteTemporal.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\DatosContratoTemporal.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\EventoInfo.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Extra.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\PaqueteTemporal.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\PresupuestoTemporal.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\ReservaDetalle.java

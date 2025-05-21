@@ -12,7 +12,6 @@ modelos\PresupuestoTemporal.class
 modelos\Cliente.class
 modelos\EventoInfo.class
 module-info.class
-controladores\VistaContratoController.class
 controladores\PanelPrincipalController.class
 database\Conexion.class
 dao\PresupuestoDAO.class
@@ -20,7 +19,9 @@ dao\LoginDAO.class
 controladores\ClientePresupuestoController.class
 modelos\ClienteSeleccionado.class
 controladores\ClientesController.class
+controladores\VistaPreviaClienteController.class
 controladores\EventosController.class
+modelos\Extra.class
 controladores\Encriptador.class
 controladores\App.class
 dao\MensajesDAO.class
