@@ -6,42 +6,137 @@
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="controladores.ClientePresupuestoController"
-            prefWidth="1000.0" prefHeight="520.0">
+            prefWidth="1920.0" prefHeight="1080.0"
+            styleClass="fondo-principal">
 
-    <HBox spacing="20" AnchorPane.topAnchor="10" AnchorPane.leftAnchor="10" AnchorPane.rightAnchor="10" AnchorPane.bottomAnchor="10">
-
-        <!-- FORMULARIO DE REGISTRO -->
-        <VBox spacing="10" prefWidth="400">
-            <Label text="Registrar nuevo cliente" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
-            <TextField fx:id="txtNombre" promptText="Nombre(s)" />
-            <TextField fx:id="txtApellidoPaterno" promptText="Apellido paterno" />
-            <TextField fx:id="txtApellidoMaterno" promptText="Apellido materno (opcional)" />
-            <TextField fx:id="txtCorreo" promptText="Correo electrónico" />
-            <TextField fx:id="txtTelefono" promptText="Teléfono" />
-            <TextField fx:id="txtRFC" promptText="RFC o CURP" />
-            <Button text="Registrar cliente" onAction="#guardarCliente" />
-        </VBox>
-
-        <!-- TABLA DE CLIENTES -->
-    
-        <VBox spacing="10" prefWidth="750">
-            <TextField fx:id="txtBuscar" promptText="Buscar por nombre o RFC..." onKeyReleased="#buscarClientes" />
-        <Label text="Buscar cliente existente" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
-            <TableView fx:id="tablaClientes" prefHeight="350" prefWidth="680">
-                <columns>
-                    <TableColumn fx:id="colNombre" text="Nombre" prefWidth="120" />
-                    <TableColumn fx:id="colApellidoPaterno" text="Apellido Paterno" prefWidth="150" />
-                    <TableColumn fx:id="colApellidoMaterno" text="Apellido Materno" prefWidth="150" />
-                    <TableColumn fx:id="colRFC" text="RFC" prefWidth="150" />
-                    <TableColumn fx:id="colTelefono" text="Teléfono" prefWidth="120" />
-                </columns>
-            </TableView>
-            <HBox spacing="10" alignment="CENTER">
-                <Button text="Seleccionar" onAction="#seleccionarCliente" />
-                <Button text="Siguiente" onAction="#irAPaquetesPresupuesto" />
-                <Button text="Regresar" onAction="#handleRegresar" />
+    <!-- Contenedor principal -->
+    <VBox spacing="20" 
+          AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0" 
+          AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0">
+        
+        <!-- Header con título y botones superiores -->
+        <VBox spacing="15" styleClass="header-cliente-presupuesto">
+            <padding>
+                <Insets top="20" right="40" bottom="20" left="40" />
+            </padding>
+            
+            <!-- BOTONES SUPERIORES -->
+            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="hbox-espaciado">
+                <Button text="← Regresar" onAction="#handleRegresar" 
+                        styleClass="btn-moderno, btn-regresar" 
+                        minWidth="120" prefWidth="120" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="Continuar →" onAction="#irAPaquetesPresupuesto" 
+                        styleClass="btn-moderno, btn-siguiente" 
+                        minWidth="130" prefWidth="130" />
             </HBox>
+            
+            <!-- TÍTULO -->
+            <VBox alignment="CENTER" spacing="10">
+                <Label text="GESTIÓN DE CLIENTES" styleClass="titulo-cliente-presupuesto" />
+                <Label text="Registra un nuevo cliente o selecciona uno existente" 
+                       styleClass="subtitulo-cliente-presupuesto" />
+            </VBox>
         </VBox>
 
-    </HBox>
+        <!-- Contenido principal -->
+        <HBox spacing="30" VBox.vgrow="ALWAYS">
+            <padding>
+                <Insets top="20" right="40" bottom="40" left="40" />
+            </padding>
+
+            <!-- FORMULARIO DE REGISTRO (Columna Izquierda) -->
+            <VBox spacing="20" prefWidth="400" styleClass="contenedor-formulario">
+                <padding>
+                    <Insets top="30" right="25" bottom="30" left="25" />
+                </padding>
+                
+                <Label text="📝 REGISTRAR NUEVO CLIENTE" styleClass="titulo-seccion-moderna" />
+                <Separator />
+                
+                <!-- Campos del formulario -->
+                <VBox spacing="15">
+                    <VBox spacing="5">
+                        <Label text="Nombre(s) *" styleClass="label" />
+                        <TextField fx:id="txtNombre" promptText="Ingresa el nombre del cliente" 
+                                  styleClass="text-field" />
+                    </VBox>
+                    
+                    <VBox spacing="5">
+                        <Label text="Apellido Paterno *" styleClass="label" />
+                        <TextField fx:id="txtApellidoPaterno" promptText="Apellido paterno" 
+                                  styleClass="text-field" />
+                    </VBox>
+                    
+                    <VBox spacing="5">
+                        <Label text="Apellido Materno" styleClass="label" />
+                        <TextField fx:id="txtApellidoMaterno" promptText="Apellido materno (opcional)" 
+                                  styleClass="text-field" />
+                    </VBox>
+                    
+                    <VBox spacing="5">
+                        <Label text="Correo Electrónico" styleClass="label" />
+                        <TextField fx:id="txtCorreo" promptText="ejemplo@correo.com" 
+                                  styleClass="text-field" />
+                    </VBox>
+                    
+                    <VBox spacing="5">
+                        <Label text="Teléfono *" styleClass="label" />
+                        <TextField fx:id="txtTelefono" promptText="10 dígitos (ej: 5551234567)" 
+                                  styleClass="text-field" />
+                    </VBox>
+                    
+                    <VBox spacing="5">
+                        <Label text="RFC o CURP *" styleClass="label" />
+                        <TextField fx:id="txtRFC" promptText="RFC o CURP del cliente" 
+                                  styleClass="text-field" />
+                    </VBox>
+                </VBox>
+                
+                <!-- Botón registrar -->
+                <VBox alignment="CENTER" spacing="10">
+                    <Label text="* Campos obligatorios" styleClass="texto-error" />
+                    <Button text="💾 REGISTRAR CLIENTE" onAction="#guardarCliente" 
+                            styleClass="btn-registrar-cliente"
+                            prefWidth="250" prefHeight="45" />
+                </VBox>
+            </VBox>
+
+            <!-- BÚSQUEDA Y TABLA (Columna Derecha) -->
+            <VBox spacing="15" HBox.hgrow="ALWAYS" styleClass="contenedor-tabla">
+                <padding>
+                    <Insets top="30" right="25" bottom="30" left="25" />
+                </padding>
+                
+                <Label text="🔍 BUSCAR CLIENTE EXISTENTE" styleClass="titulo-seccion-moderna" />
+                <TextField fx:id="txtBuscar" promptText="Buscar por nombre, RFC, teléfono..." 
+                          onKeyReleased="#buscarClientes" 
+                          styleClass="campo-busqueda-moderno" />
+                <Separator />
+                
+                <!-- Tabla de clientes -->
+                <TableView fx:id="tablaClientes" VBox.vgrow="ALWAYS"
+                          styleClass="tabla-clientes-moderna">
+                    <columns>
+                        <TableColumn fx:id="colNombre" text="Nombre" prefWidth="150" />
+                        <TableColumn fx:id="colApellidoPaterno" text="Apellido Paterno" prefWidth="150" />
+                        <TableColumn fx:id="colApellidoMaterno" text="Apellido Materno" prefWidth="150" />
+                        <TableColumn fx:id="colRFC" text="RFC/CURP" prefWidth="160" />
+                        <TableColumn fx:id="colTelefono" text="Teléfono" prefWidth="120" />
+                    </columns>
+                </TableView>
+                
+                <!-- Botón de selección centrado -->
+                <HBox alignment="CENTER" spacing="15">
+                    <Button text="✅ SELECCIONAR" onAction="#seleccionarCliente" 
+                            styleClass="btn-moderno, boton-actualizar" 
+                            prefWidth="200" prefHeight="40" />
+                </HBox>
+                
+                <!-- Información adicional -->
+                <Label text="💡 Selecciona un cliente de la tabla o registra uno nuevo" 
+                       styleClass="texto-bienvenida" />
+            </VBox>
+        </HBox>
+    </VBox>
 </AnchorPane>

@@ -3,41 +3,80 @@
 <?import javafx.scene.control.*?>
 <?import javafx.geometry.*?>
 
-<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.CalendarioContratoController">
+<BorderPane xmlns:fx="http://javafx.com/fxml" 
+            fx:controller="controladores.CalendarioContratoController"
+            styleClass="root">
     <top>
-        <VBox alignment="TOP_CENTER" spacing="10">
+        <VBox spacing="15" styleClass="contenedor-reservas">
             <padding><Insets top="20" right="20" bottom="10" left="20"/></padding>
-            <HBox alignment="CENTER" spacing="10">
-                <Label text="Buscar cliente:" />
-                <TextField fx:id="txtBuscar" onKeyReleased="#buscarCliente" promptText="Nombre, RFC, CURP..." />
+            
+            <!-- BOTONES SUPERIOR -->
+            <HBox alignment="CENTER_LEFT" spacing="10" styleClass="hbox-espaciado">
+                <Button text="← Regresar" onAction="#accionRegresar" 
+                        styleClass="btn-moderno, btn-regresar" 
+                        minWidth="120" prefWidth="120" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="Siguiente →" onAction="#accionSiguiente" 
+                        styleClass="btn-moderno, btn-siguiente" 
+                        minWidth="130" prefWidth="130" />
+            </HBox>
+            
+            <!-- BÚSQUEDA -->
+            <HBox alignment="CENTER" spacing="10" styleClass="hbox-espaciado">
+                <Label text="Buscar cliente:" styleClass="label-contrato" />
+                <TextField fx:id="txtBuscar" onKeyReleased="#buscarCliente" 
+                          promptText="Nombre, RFC, CURP..." 
+                          styleClass="campo-busqueda-moderno" />
             </HBox>
         </VBox>
     </top>
 
     <left>
-        <VBox alignment="TOP_CENTER" spacing="5">
+        <VBox alignment="TOP_CENTER" spacing="5" styleClass="tarjeta-formulario">
             <padding><Insets top="20" left="20"/></padding>
-            <Label text="Resultados" style="-fx-font-weight: bold;" />
-            <ListView fx:id="listaResultados" prefWidth="200" prefHeight="300" />
+            <Label text="Resultados" styleClass="titulo-seccion-moderna" />
+            <ListView fx:id="listaResultados" prefWidth="200" prefHeight="300" 
+                     styleClass="lista-detalles" />
         </VBox>
     </left>
 
     <center>
-        <VBox alignment="TOP_CENTER" spacing="20">
-            <HBox alignment="CENTER" spacing="10">
-                <Button text="◀" onAction="#mesAnterior" />
-                <Label fx:id="labelMes" style="-fx-font-size: 18px; -fx-font-weight: bold;" />
-                <Button text="▶" onAction="#mesSiguiente" />
+        <VBox alignment="TOP_CENTER" spacing="20" styleClass="contenedor-principal">
+            <HBox alignment="CENTER" spacing="10" styleClass="hbox-espaciado">
+                <Button text="◀" onAction="#mesAnterior" 
+                        styleClass="btn-moderno, btn-regresar" />
+                <Label fx:id="labelMes" styleClass="titulo-principal" />
+                <Button text="▶" onAction="#mesSiguiente" 
+                        styleClass="btn-moderno, btn-siguiente" />
             </HBox>
-            <GridPane fx:id="gridCalendario" hgap="10" vgap="10" alignment="CENTER" />
+            <GridPane fx:id="gridCalendario" hgap="10" vgap="10" 
+                     alignment="CENTER" styleClass="calendario-grid" />
         </VBox>
     </center>
 
-    <bottom>
-        <HBox alignment="CENTER" spacing="20">
-            <padding><Insets top="20" bottom="20"/></padding>
-            <Button text="Siguiente" onAction="#accionSiguiente" />
-            <Button text="Regresar" onAction="#accionRegresar" />
-        </HBox>
-    </bottom>
+    <!-- NUEVO PANEL LATERAL PARA DETALLES -->
+    <right>
+        <VBox fx:id="panelDetalles" visible="false" spacing="15" 
+              styleClass="panel-detalles-lateral" prefWidth="400" maxWidth="400">
+            <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+            
+            <!-- Header del panel -->
+            <HBox alignment="CENTER_LEFT" spacing="10">
+                <Label fx:id="lblTituloDetalle" text="📅 Detalles de Reserva" 
+                       styleClass="titulo-panel-detalle" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="✕" onAction="#cerrarDetalles" 
+                        styleClass="btn-cerrar-detalle" />
+            </HBox>
+            
+            <Separator />
+            
+            <!-- Contenedor scrolleable para los detalles -->
+            <ScrollPane fx:id="scrollDetalles" fitToWidth="true" 
+                       styleClass="scroll-detalles" VBox.vgrow="ALWAYS">
+                <VBox fx:id="contenedorDetalles" spacing="15" 
+                      styleClass="contenedor-detalles-scroll" />
+            </ScrollPane>
+        </VBox>
+    </right>
 </BorderPane>

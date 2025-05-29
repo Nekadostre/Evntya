@@ -1,23 +1,112 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
 
-<AnchorPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.ClientesController" prefWidth="800" prefHeight="600">
-    <children>
-        <VBox alignment="CENTER" layoutX="20" layoutY="20" prefWidth="760" prefHeight="560" AnchorPane.topAnchor="20" AnchorPane.bottomAnchor="20" AnchorPane.leftAnchor="20" AnchorPane.rightAnchor="20">
-        <TableView fx:id="tablaClientes" layoutX="20" layoutY="20" prefWidth="700" prefHeight="560">
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controladores.ClientesController">
+   <!-- CONTENIDO PRINCIPAL -->
+   <center>
+      <VBox>
+         <!-- Header -->
+         <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="header-section">
+            <children>
+               <Button mnemonicParsing="false" onAction="#accionRegresar" styleClass="btn-secondary" text="← Regresar" />
+               <Label styleClass="titulo-presupuestos" text="PRESUPUESTOS ACTIVOS" />
+               <Region HBox.hgrow="ALWAYS" />
+               <Label fx:id="lblTotal" styleClass="contador-total" text="0" />
+               <Label styleClass="label-contador" text="presupuestos activos" />
+            </children>
+            <padding>
+               <Insets bottom="15.0" left="20.0" right="20.0" top="15.0" />
+            </padding>
+         </HBox>
+
+         <!-- Barra de búsqueda y controles -->
+         <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="controles-section">
+            <children>
+               <TextField fx:id="txtBuscar" onKeyReleased="#buscarCliente" promptText="Buscar presupuesto..." styleClass="campo-busqueda" HBox.hgrow="ALWAYS" />
+               <Button mnemonicParsing="false" onAction="#buscarCliente" styleClass="btn-primary" text="🔍 Buscar" />
+               <Button mnemonicParsing="false" onAction="#actualizarDatos" styleClass="btn-success" text="🔄 Actualizar" />
+               <Button mnemonicParsing="false" onAction="#limpiarPresupuestosManual" styleClass="btn-danger-outline" text="🧹 Limpiar Vencidos" />
+            </children>
+            <padding>
+               <Insets bottom="10.0" left="20.0" right="20.0" top="10.0" />
+            </padding>
+         </HBox>
+
+         <!-- Tabla de clientes -->
+         <TableView fx:id="tablaClientes" styleClass="tabla-clientes-moderna" VBox.vgrow="ALWAYS">
             <columns>
-                <TableColumn fx:id="colNombre" text="Nombre" prefWidth="200" />
-                <TableColumn fx:id="colApellidos" text="Apellidos" prefWidth="200" />
-                <TableColumn fx:id="colFecha" text="Fecha Presupuesto" prefWidth="200" />
-                <TableColumn fx:id="colPaquete" text="Paquete" prefWidth="200" />
-                <TableColumn fx:id="colMonto" text="Monto" prefWidth="200" />
-                <TableColumn fx:id="colAcciones" text="Acciones" prefWidth="100" />
+               <TableColumn fx:id="colNombre" prefWidth="140.0" text="Nombre" />
+               <TableColumn fx:id="colApellido" prefWidth="160.0" text="Apellido" />
+               <TableColumn fx:id="colTelefono" prefWidth="150.0" text="Teléfono" />
+               <TableColumn fx:id="colEmail" prefWidth="250.0" text="Email" />
+               <TableColumn fx:id="colFechaContrato" prefWidth="120.0" text="Fecha" />
+               <TableColumn fx:id="colPaquete" prefWidth="170.0" text="Paquete" />
+               <TableColumn fx:id="colMonto" prefWidth="120.0" text="Monto" />
+               <TableColumn fx:id="colEstado" prefWidth="140.0" text="Estado" />
             </columns>
-        </TableView>
-        <HBox layoutX="600" layoutY="800" spacing="25">
-            <Button text="Regresar" onAction="#accionRegresar" styleClass="boton-regresar" prefWidth="150" />
-        </HBox>
-        </VBox>
-    </children>
-</AnchorPane>
+            <VBox.margin>
+               <Insets bottom="20.0" left="20.0" right="20.0" top="10.0" />
+            </VBox.margin>
+         </TableView>
+      </VBox>
+   </center>
+
+   <!-- PANEL LATERAL DERECHO CON BOTONES DE ACCIÓN -->
+   <right>
+      <VBox spacing="20" styleClass="panel-acciones-lateral" prefWidth="300" maxWidth="300">
+         <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+         
+         <!-- Título del panel -->
+         <Label text="⚙️ ACCIONES" styleClass="titulo-panel-acciones" />
+         <Separator />
+         
+         <!-- Información del cliente seleccionado -->
+         <VBox fx:id="infoClienteSeleccionado" spacing="10" visible="false"
+               styleClass="info-cliente-seleccionado">
+            <Label fx:id="lblClienteSeleccionado" text="Cliente seleccionado:" 
+                   styleClass="label-cliente-seleccionado" />
+            <Label fx:id="lblNombreSeleccionado" text="Ninguno" 
+                   styleClass="nombre-cliente-seleccionado" />
+         </VBox>
+         
+         <Separator fx:id="separadorInfo" visible="false" />
+         
+         <!-- Botones de acción principales -->
+         <VBox spacing="15" alignment="CENTER">
+            <Button onAction="#verDetalles" styleClass="btn-info" 
+                    text="📋 Ver Detalles" prefWidth="250" prefHeight="45" />
+            <Button onAction="#verContratoPDF" styleClass="btn-warning" 
+                    text="📄 Ver PDF" prefWidth="250" prefHeight="45" />
+            <Button onAction="#enviarEmail" styleClass="btn-primary" 
+                    text="📧 Enviar Email" prefWidth="250" prefHeight="45" />
+            <Button onAction="#eliminarSeleccionado" styleClass="btn-danger" 
+                    text="🗑️ Eliminar" prefWidth="250" prefHeight="45" />
+         </VBox>
+         
+         <Separator />
+         
+         <!-- Información adicional -->
+         <VBox spacing="10" alignment="CENTER">
+            <Label text="💡 Información" styleClass="titulo-info-panel" />
+            <Label text="Selecciona un cliente de la tabla para realizar acciones" 
+                   styleClass="texto-info-panel" wrapText="true" />
+         </VBox>
+         
+         <!-- Panel para mensajes -->
+         <VBox fx:id="panelMensajes" spacing="15" visible="false"
+               styleClass="panel-mensajes">
+            <Label fx:id="lblTituloMensaje" styleClass="titulo-mensaje" />
+            <ScrollPane fx:id="scrollMensajes" fitToWidth="true" 
+                       styleClass="scroll-mensajes" VBox.vgrow="ALWAYS">
+               <VBox fx:id="contenedorMensajes" spacing="15" 
+                     styleClass="contenedor-mensajes" />
+            </ScrollPane>
+            <Button text="✕ Cerrar" onAction="#cerrarMensajes" 
+                    styleClass="btn-cerrar-mensaje" />
+         </VBox>
+      </VBox>
+   </right>
+</BorderPane>

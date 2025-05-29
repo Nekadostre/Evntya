@@ -1,57 +1,79 @@
 package controladores;
 
-import java.io.IOException;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
-import javafx.stage.Stage;
+import modelos.SesionTemporal;
+
+import java.io.IOException;
 
 public class PanelPrincipalController {
+    private static final boolean DEBUG_MODE = false;
+    private void debug(String mensaje) {
+        if (DEBUG_MODE) {
+            System.out.println(mensaje);
+        }
+    }
 
+    @FXML private Label lblNombreUsuario;
     @FXML
-    private Label lblNombreUsuario;
-    public void inicializarUsuario(String nombre, String apellidos, String rol) {
-    lblNombreUsuario.setText("Bienvenido, " + nombre + " " + apellidos + " (" + rol + ")");
-}
-    @FXML
-    private void abrirClientes() throws IOException{
-    App.setRoot("Clientes");
-}
-    @FXML
-    private void abrirReservas() throws IOException {
-    App.setRoot("Reservas");
+    public void initialize() {
+        cargarDatosUsuario();
     }
     
-    @FXML
-    private void abrirEventos() throws IOException {
-    App.setRoot("Eventos");
+    private void cargarDatosUsuario() {
+        SesionTemporal sesion = SesionTemporal.getInstancia();
+        if (sesion.hayUsuarioLogueado()) {
+            String nombreCompleto = sesion.getNombreCompletoUsuario();
+            String rol = sesion.getUsuarioRol();
+            String rolCapitalizado = rol.substring(0, 1).toUpperCase() + rol.substring(1).toLowerCase();
+            lblNombreUsuario.setText("Empleado: " + nombreCompleto + " (" + rolCapitalizado + ")");
+            debug("✅ Panel Principal cargado para: " + nombreCompleto);
+        } else {
+            lblNombreUsuario.setText("Empleado: Usuario no identificado");
+            debug("⚠️ No hay usuario en sesión");
+        }
     }
-   
-
-    @FXML
-    private void cerrarSesion() {
-    Stage stage = (Stage) lblNombreUsuario.getScene().getWindow();
-    stage.close();
-    }
-
-   private void abrirVentana(String rutaFXML, String titulo) {
-    try {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(rutaFXML));
-        Parent root = loader.load();
-        Stage stage = new Stage();
-        stage.setScene(new Scene(root));
-        stage.setTitle(titulo);
-        stage.show();
-    } catch (IOException e) {
-    }
-}
-
 
     @FXML
-    public void salirAplicacion(ActionEvent event) {
-        System.exit(0);
+    private void abrirClientes() 
+    {
+        try {
+            App.setRoot("Clientes");
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir Clientes: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void abrirEventos() 
+    {
+        try {
+            App.setRoot("Eventos");
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir Eventos: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void abrirReservas() 
+    {
+        try {
+            App.setRoot("Reservas");
+        } catch (IOException e) {
+            System.err.println("❌ Error al abrir Reservas: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void cerrarSesion() 
+    {
+        try {
+            // Limpiar completamente la sesión (incluyendo usuario)
+            SesionTemporal.getInstancia().logout();
+            debug("🚪 Sesión cerrada, regresando al login");
+            App.setRoot("LoginView");
+        } catch (IOException e) {
+            System.err.println("❌ Error al cerrar sesión: " + e.getMessage());
+        }
     }
 }

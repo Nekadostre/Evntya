@@ -1,30 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.VBox?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.text.Font?>
-<?import javafx.scene.text.Text?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
 
+<AnchorPane xmlns:fx="http://javafx.com/fxml" 
+            fx:controller="controladores.EventosController"
+            prefWidth="1200" prefHeight="800" 
+            stylesheets="@estilos.css" 
+            styleClass="fondo-principal">
 
-<AnchorPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="controladores.EventosController" stylesheets="@css/estilos.css" prefHeight="400.0" prefWidth="600.0">
-    
-<VBox alignment="CENTER" spacing="20.0" prefWidth="600.0" prefHeight="360.0" AnchorPane.topAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" styleClass="contenedor-bienvenida">
-    
-<Text text="EVENTOS" styleClass="titulo-bienvenida" />
+    <VBox alignment="CENTER" spacing="60" 
+          AnchorPane.topAnchor="0" AnchorPane.bottomAnchor="0" 
+          AnchorPane.leftAnchor="0" AnchorPane.rightAnchor="0"
+          styleClass="contenedor-eventos-principal">
+        
+        <VBox alignment="CENTER" spacing="20" styleClass="contenedor-titulo-eventos">
+            <padding>
+                <Insets top="40" right="50" bottom="40" left="50" />
+            </padding>
+            
+            <Label text="GESTIÓN DE EVENTOS" styleClass="titulo-eventos-principal" />
+            <Label text="Selecciona una opción para gestionar tus eventos" 
+                   styleClass="subtitulo-eventos" />
+        </VBox>
 
-    <HBox alignment="CENTER" spacing="20.0">
-    
-<Button text="Presupuesto" onAction="#buttonPresupuesto" styleClass="boton-nav" />
+        <!-- Contenedor de botones principales -->
+        <VBox alignment="CENTER" spacing="50" styleClass="contenedor-botones-eventos">
+            
+            <!-- Crear Presupuesto -->
+            <HBox alignment="CENTER" styleClass="contenedor-boton-evento">
+                <Button fx:id="btnPresupuesto" text="🎉 CREAR PRESUPUESTO" 
+                        onAction="#buttonPresupuesto"
+                        styleClass="btn-evento-principal, btn-presupuesto"
+                        prefWidth="450" prefHeight="90" />
+            </HBox>
+            
+            <!-- Crear Contrato -->
+            <HBox alignment="CENTER" styleClass="contenedor-boton-evento">
+                <Button fx:id="BtnContrato" text="📋 CREAR CONTRATO" 
+                        onAction="#buttonContrato"
+                        styleClass="btn-evento-principal, btn-contrato"
+                        prefWidth="450" prefHeight="90" />
+            </HBox>
+        </VBox>
 
-<Button text="Contrato" onAction="#buttonContrato" styleClass="boton-nav" />
-   
-    </HBox>
-    
-</VBox>
+        <Region VBox.vgrow="ALWAYS" />
+        
+    </VBox>
 
-<Button text="Volver al Panel" onAction="#volverAlPanelPrincipal" styleClass="boton-nav" AnchorPane.rightAnchor="20.0" AnchorPane.bottomAnchor="20.0" />
+    <Button fx:id="btnRegresar" text="← REGRESAR" 
+            onAction="#volverAlPanelPrincipal"
+            styleClass="btn-regresar-eventos" 
+            prefWidth="150" prefHeight="40"
+            AnchorPane.topAnchor="20" AnchorPane.leftAnchor="20" />
 
 </AnchorPane>
-

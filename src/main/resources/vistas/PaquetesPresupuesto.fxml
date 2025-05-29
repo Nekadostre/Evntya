@@ -1,100 +1,261 @@
-<?xml version="1.0" encoding="utf-8"?>
-<?import javafx.scene.layout.HBox?>
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1"
+<AnchorPane prefHeight="600.0" prefWidth="1100.0" 
+            xmlns="http://javafx.com/javafx/23.0.1" 
+            xmlns:fx="http://javafx.com/fxml/1" 
             fx:controller="controladores.PaquetesPresupuestoController"
-            stylesheets="@css/estilos.css" prefWidth="1000.0" prefHeight="600.0">
-    <HBox alignment="CENTER" spacing="40.0"
-          AnchorPane.topAnchor="20.0" AnchorPane.leftAnchor="20.0"
-          AnchorPane.rightAnchor="20.0" AnchorPane.bottomAnchor="20.0">
-
-        <!-- COLUMNA DE PAQUETES A LA IZQUIERDA (ACTUALIZADA) -->
-        <VBox spacing="15.0" prefWidth="450.0">
-            <Label fx:id="lblPaq1" text="Paquete 1" styleClass="etiqueta-paquete" />
-            <ListView fx:id="ListaPaquete1" prefHeight="230.0" styleClass="lista-paquete" />
-            <Label fx:id="lblPrecioPaq1" text="Precio: $0" styleClass="etiqueta-precio" style="-fx-font-weight: bold;" />
-            <HBox spacing="10.0" alignment="CENTER">
-                <Button fx:id="btnSelecPaq1" text="Seleccionar" onAction="#seleccionarPaquete1" styleClass="boton-paquete" />
-                <Button fx:id="btnQuitarPaq1" text="Quitar" onAction="#quitarPaquete1" styleClass="boton-paquete-alt" />
-            </HBox>
-
-            <Label fx:id="lblPaq2" text="Paquete 2" styleClass="etiqueta-paquete" />
-            <ListView fx:id="ListaPaquete2" prefHeight="230.0" styleClass="lista-paquete" />
-            <Label fx:id="lblPrecioPaq2" text="Precio: $0" styleClass="etiqueta-precio" style="-fx-font-weight: bold;" />
-            <HBox spacing="10.0" alignment="CENTER">
-                <Button fx:id="btnSelecPaq2" text="Seleccionar" onAction="#seleccionarPaquete2" styleClass="boton-paquete" />
-                <Button fx:id="btnQuitarPaq2" text="Quitar" onAction="#quitarPaquete2" styleClass="boton-paquete-alt" />
-            </HBox>
-        </VBox>
-
-        <!-- COLUMNA DE EXTRAS A LA DERECHA (CON AJUSTES PARA TÍTULOS COMPLETOS) -->
-        <VBox spacing="10.0" prefWidth="550.0">
-            <!-- Título de extras con más espacio -->
-            <Label text="Extras Disponibles" styleClass="etiqueta-titulo-extras" />
+            styleClass="fondo-principal">
             
-            <!-- Extra 1 con más ancho para el texto -->
-            <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Label fx:id="lblExtra1" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
-                <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra1" text="+" onAction="#handleAgregarExtra1" styleClass="boton-paquete"/>
-                    <Button fx:id="btnQuitarExtra1" text="-" onAction="#handleQuitarExtra1" styleClass="boton-paquete-alt"/>
-                    <TextField fx:id="txtExtras1" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
+    <children>
+        <VBox AnchorPane.topAnchor="15.0" AnchorPane.leftAnchor="25.0" 
+              AnchorPane.rightAnchor="25.0" AnchorPane.bottomAnchor="60.0"
+              spacing="15" alignment="TOP_CENTER"
+              styleClass="contenedor-eventos-principal">
+            <padding>
+                <Insets bottom="20" left="20" right="20" top="20" />
+            </padding>
+            
+            <children>
+                <!-- HEADER CON TÍTULO -->
+                <VBox spacing="10" styleClass="contenedor-titulo-eventos">
+                    <padding>
+                        <Insets top="15" right="25" bottom="15" left="25" />
+                    </padding>
+                    
+                    <VBox alignment="CENTER" spacing="8">
+                        <Label text="SELECCIÓN DE PAQUETE" styleClass="titulo-eventos-principal" 
+                               style="-fx-font-size: 28px;" />
+                        <HBox spacing="10" alignment="CENTER">
+                            <Label text="Cliente:" styleClass="subtitulo-eventos" />
+                            <Label fx:id="lblNombreCliente" text="Sin cliente" 
+                                   styleClass="texto-bienvenida" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+                
+                <HBox spacing="25" alignment="TOP_CENTER" VBox.vgrow="ALWAYS" 
+                      prefWidth="1000.0" prefHeight="380.0">
+                    
+                    <!-- COLUMNA IZQUIERDA: PAQUETES -->
+                    <VBox spacing="15" prefWidth="400.0" HBox.hgrow="ALWAYS" 
+                          styleClass="contenedor-botones-eventos">
+                        <padding>
+                            <Insets top="15" right="15" bottom="15" left="15" />
+                        </padding>
+                        
+                        <Label text="📦 PAQUETES DISPONIBLES" styleClass="titulo-seccion-moderna" />
+                        
+                        <!-- PAQUETE 1 -->
+                        <VBox spacing="8" styleClass="contenedor-presupuesto">
+                            <padding>
+                                <Insets bottom="12" left="12" right="12" top="12" />
+                            </padding>
+                            <children>
+                                <Label fx:id="lblPaq1" text="Paquete 1 (Servicios: 5h)" 
+                                       styleClass="titulo-presupuesto" style="-fx-font-size: 16px;" />
+                                
+                                <!-- VBox para servicios dinámicos -->
+                                <VBox fx:id="ListaPaquete1" spacing="3" 
+                                      style="-fx-background-color: white; -fx-border-color: #bdc3c7; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8; -fx-min-height: 60;">
+                                </VBox>
+                                
+                                <Label fx:id="lblPrecioPaq1" text="Precio: 4500.00" 
+                                       styleClass="etiqueta-total-contrato" style="-fx-font-size: 14px;" />
+                                
+                                <HBox spacing="10" alignment="CENTER">
+                                    <Button text="Añadir paquete" onAction="#seleccionarPaquete1" 
+                                            prefWidth="120" prefHeight="30"
+                                            styleClass="btn-moderno, btn-success" 
+                                            style="-fx-font-size: 12px;" />
+                                </HBox>
+                            </children>
+                        </VBox>
+                        
+                        <!-- PAQUETE 2 -->
+                        <VBox spacing="8" styleClass="contenedor-presupuesto">
+                            <padding>
+                                <Insets bottom="12" left="12" right="12" top="12" />
+                            </padding>
+                            <children>
+                                <Label fx:id="lblPaq2" text="Paquete 2 (Servicios: 5h)" 
+                                       styleClass="titulo-presupuesto" style="-fx-font-size: 16px;" />
+                                
+                                <!-- VBox para servicios dinámicos -->
+                                <VBox fx:id="ListaPaquete2" spacing="3" 
+                                      style="-fx-background-color: white; -fx-border-color: #bdc3c7; -fx-border-radius: 8px; -fx-background-radius: 8px; -fx-padding: 8; -fx-min-height: 60;">
+                                </VBox>
+                                
+                                <Label fx:id="lblPrecioPaq2" text="Precio: 8900.00" 
+                                       styleClass="etiqueta-total-contrato" style="-fx-font-size: 14px;" />
+                                
+                                <HBox spacing="10" alignment="CENTER">
+                                    <Button text="Añadir paquete" onAction="#seleccionarPaquete2" 
+                                            prefWidth="120" prefHeight="30"
+                                            styleClass="btn-moderno, btn-success" 
+                                            style="-fx-font-size: 12px;" />
+                                </HBox>
+                            </children>
+                        </VBox>
+                    </VBox>
+                    
+                    <!-- COLUMNA DERECHA: EXTRAS Y RESUMEN -->
+                    <VBox spacing="12" prefWidth="400.0" HBox.hgrow="ALWAYS"
+                          styleClass="contenedor-botones-eventos">
+                        <padding>
+                            <Insets top="15" right="15" bottom="15" left="15" />
+                        </padding>
+                        
+                        <Label text="✨ EXTRAS DISPONIBLES" styleClass="titulo-seccion-moderna" />
+                        
+                        <VBox spacing="8">
+                            <!-- Extra 1 -->
+                            <HBox spacing="8" alignment="CENTER_LEFT" prefHeight="32" styleClass="tarjeta-formulario">
+                                <padding>
+                                    <Insets top="5" right="8" bottom="5" left="8" />
+                                </padding>
+                                <Label fx:id="lblExtra1" text="Arco de globos (500.00)" prefWidth="150" 
+                                       styleClass="label" style="-fx-font-size: 11px;" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button text="+" onAction="#handleAgregarExtra1" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-info" style="-fx-font-size: 12px;" />
+                                <Button text="-" onAction="#handleQuitarExtra1" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-warning" style="-fx-font-size: 12px;" />
+                                <TextField fx:id="txtExtras1" text="0" prefWidth="50" prefHeight="25" 
+                                          editable="false" styleClass="text-field" 
+                                          style="-fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 11px;" />
+                            </HBox>
+                            
+                            <!-- Extra 2 -->
+                            <HBox spacing="8" alignment="CENTER_LEFT" prefHeight="32" styleClass="tarjeta-formulario">
+                                <padding>
+                                    <Insets top="5" right="8" bottom="5" left="8" />
+                                </padding>
+                                <Label fx:id="lblExtra2" text="Horas extra (800.00)" prefWidth="150" 
+                                       styleClass="label" style="-fx-font-size: 11px;" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button text="+" onAction="#handleAgregarExtra2" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-info" style="-fx-font-size: 12px;" />
+                                <Button text="-" onAction="#handleQuitarExtra2" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-warning" style="-fx-font-size: 12px;" />
+                                <TextField fx:id="txtExtras2" text="0" prefWidth="50" prefHeight="25" 
+                                          editable="false" styleClass="text-field"
+                                          style="-fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 11px;" />
+                            </HBox>
+                            
+                            <!-- Extra 3 -->
+                            <HBox spacing="8" alignment="CENTER_LEFT" prefHeight="32" styleClass="tarjeta-formulario">
+                                <padding>
+                                    <Insets top="5" right="8" bottom="5" left="8" />
+                                </padding>
+                                <Label fx:id="lblExtra3" text="Mesa de dulces (500.00)" prefWidth="150" 
+                                       styleClass="label" style="-fx-font-size: 11px;" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button text="+" onAction="#handleAgregarExtra3" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-info" style="-fx-font-size: 12px;" />
+                                <Button text="-" onAction="#handleQuitarExtra3" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-warning" style="-fx-font-size: 12px;" />
+                                <TextField fx:id="txtExtras3" text="0" prefWidth="50" prefHeight="25" 
+                                          editable="false" styleClass="text-field"
+                                          style="-fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 11px;" />
+                            </HBox>
+                            
+                            <!-- Extra 4 -->
+                            <HBox spacing="8" alignment="CENTER_LEFT" prefHeight="32" styleClass="tarjeta-formulario">
+                                <padding>
+                                    <Insets top="5" right="8" bottom="5" left="8" />
+                                </padding>
+                                <Label fx:id="lblExtra4" text="Pintacaritas (300.00)" prefWidth="150" 
+                                       styleClass="label" style="-fx-font-size: 11px;" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Button text="+" onAction="#handleAgregarExtra4" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-info" style="-fx-font-size: 12px;" />
+                                <Button text="-" onAction="#handleQuitarExtra4" 
+                                        prefWidth="25" prefHeight="25"
+                                        styleClass="btn-moderno, btn-warning" style="-fx-font-size: 12px;" />
+                                <TextField fx:id="txtExtras4" text="0" prefWidth="50" prefHeight="25" 
+                                          editable="false" styleClass="text-field"
+                                          style="-fx-alignment: center; -fx-font-weight: bold; -fx-font-size: 11px;" />
+                            </HBox>
+                        </VBox>
+                        
+                        <!-- RESUMEN DEL PRESUPUESTO -->
+                        <VBox spacing="8" VBox.vgrow="ALWAYS" styleClass="contenedor-presupuesto">
+                            <padding>
+                                <Insets top="12" right="12" bottom="12" left="12" />
+                            </padding>
+                            
+                            <Label text="📋 RESUMEN DEL PRESUPUESTO" 
+                                   styleClass="titulo-presupuesto" style="-fx-font-size: 14px;" />
+                            
+                            <VBox spacing="5">
+                                <Label text="Paquete Elegido:" styleClass="label-contrato" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="txtPaq" editable="false" prefHeight="28" 
+                                          styleClass="text-field" style="-fx-font-size: 11px;" />
+                            </VBox>
+                            
+                            <VBox spacing="5">
+                                <Label text="Total Paquete:" styleClass="label-contrato" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="txtTotPaq" editable="false" prefHeight="28" 
+                                          styleClass="text-field" style="-fx-font-size: 11px;" />
+                            </VBox>
+                            
+                            <VBox spacing="5">
+                                <Label text="Total Extras:" styleClass="label-contrato" style="-fx-font-size: 11px;" />
+                                <TextField fx:id="txtTotExtras" text="0.00" editable="false" prefHeight="28" 
+                                          styleClass="text-field" style="-fx-font-size: 11px;" />
+                            </VBox>
+                            
+                            <!-- TOTAL FINAL -->
+                            <VBox spacing="5" 
+                                  style="-fx-background-color: rgba(39, 174, 96, 0.1); -fx-background-radius: 10px; -fx-padding: 10;">
+                                <Label text="💰 PRESUPUESTO TOTAL" 
+                                       styleClass="etiqueta-total-contrato" 
+                                       style="-fx-font-size: 16px; -fx-alignment: center;" />
+                                <TextField fx:id="txtPresupTot" text="0.00" editable="false" prefHeight="35" 
+                                          styleClass="text-field"
+                                          style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-alignment: center; -fx-text-fill: #27ae60;" />
+                            </VBox>
+                        </VBox>
+                    </VBox>
                 </HBox>
-            </HBox>
-
-            <!-- Extra 2 -->
-            <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Label fx:id="lblExtra2" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
-                <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra2" text="+" onAction="#handleAgregarExtra2" styleClass="boton-paquete" />
-                    <Button fx:id="btnQuitarExtra2" text="-" onAction="#handleQuitarExtra2" styleClass="boton-paquete-alt" />
-                    <TextField fx:id="txtExtras2" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
+                
+                <!-- Información adicional -->
+                <HBox alignment="CENTER" styleClass="info-adicional">
+                    <padding>
+                        <Insets top="8" right="15" bottom="8" left="15" />
+                    </padding>
+                    <Label text="💡 Selecciona un paquete y agrega los extras que desees. Puedes agregar hasta 4 unidades de cada extra." 
+                           styleClass="texto-ayuda" style="-fx-font-size: 12px;" />
                 </HBox>
-            </HBox>
-
-            <!-- Extra 3 -->
-            <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Label fx:id="lblExtra3" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
-                <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra3" text="+" onAction="#handleAgregarExtra3" styleClass="boton-paquete" />
-                    <Button fx:id="btnQuitarExtra3" text="-" onAction="#handleQuitarExtra3" styleClass="boton-paquete-alt" />
-                    <TextField fx:id="txtExtras3" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
-                </HBox>
-            </HBox>
-
-            <!-- Extra 4 -->
-            <HBox spacing="10.0" alignment="CENTER_LEFT">
-                <Label fx:id="lblExtra4" styleClass="etiqueta-extra" prefWidth="250.0" wrapText="true" />
-                <HBox spacing="1.0">
-                    <Button fx:id="btnAgregarExtra4" text="+" onAction="#handleAgregarExtra4" styleClass="boton-paquete" />
-                    <Button fx:id="btnQuitarExtra4" text="-" onAction="#handleQuitarExtra4" styleClass="boton-paquete-alt" />
-                    <TextField fx:id="txtExtras4" editable="false" styleClass="caja-cantidad" prefWidth="50.0" />
-                </HBox>
-            </HBox>
-
-            <!-- Resto de elementos originales -->
-            <Label text="Paquete elegido" styleClass="etiqueta-paquete" />
-            <TextField fx:id="txtPaq" styleClass="caja-total" editable="false" />
-
-            <Label text="Total Paquete" styleClass="etiqueta-paquete" />
-            <TextField fx:id="txtTotPaq" styleClass="caja-total" editable="false" />
-
-            <Label text="Total Extras" styleClass="etiqueta-paquete" />
-            <TextField fx:id="txtTotExtras" styleClass="caja-total" editable="false" />
-
-            <Label text="Presupuesto Total" styleClass="etiqueta-paquete" />
-            <TextField fx:id="txtPresupTot" styleClass="caja-total" editable="false" />
-
-            <HBox spacing="10.0" alignment="CENTER">
-                <Button fx:id="btnRegresar" text="← Regresar" onAction="#handleRegresarButtonAction" styleClass="boton-nav" />
-                <Button fx:id="btnSiguiente" text="Siguiente →" onAction="#irAVistaPrevia" styleClass="boton-nav" />
-            </HBox>
+            </children>
         </VBox>
-    </HBox>
+        
+        <!-- BOTONES INFERIORES -->
+        <HBox AnchorPane.bottomAnchor="10.0" AnchorPane.leftAnchor="0.0" 
+              AnchorPane.rightAnchor="0.0" spacing="30" alignment="CENTER">
+            <Button text="Siguiente" onAction="#irAVistaPrevia" 
+                    prefWidth="140" prefHeight="35"
+                    styleClass="btn-moderno, btn-success" />
+            <Button text="SALIR" onAction="#handleRegresarButtonAction" 
+                    prefWidth="140" prefHeight="35"
+                    styleClass="btn-moderno, btn-regresar" />
+        </HBox>
+    </children>
 </AnchorPane>
