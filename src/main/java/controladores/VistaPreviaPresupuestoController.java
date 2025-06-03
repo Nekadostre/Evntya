@@ -47,6 +47,7 @@ import com.itextpdf.text.*;
 import com.itextpdf.text.pdf.PdfWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.UnsupportedEncodingException;
 
 import java.util.Properties;
 import javax.mail.*;
@@ -70,7 +71,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
     
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        System.out.println("VistaPreviaController: === INICIANDO INICIALIZACIÓN ===");
+        System.out.println("VistaPreviaController: INICIANDO INICIALIZACIÓN ");
         
         try {
             // Configurar radio buttons
@@ -111,11 +112,10 @@ public class VistaPreviaPresupuestoController implements Initializable {
             System.out.println("VistaPreviaController: PASO 4 - Cargando datos...");
             cargarDatos();
             
-            System.out.println("VistaPreviaController: === INICIALIZACIÓN COMPLETADA ===");
+            System.out.println("VistaPreviaController:  INICIALIZACIÓN COMPLETADA ");
             
         } catch (Exception e) {
             System.err.println("VistaPreviaController: ❌ ERROR EN INICIALIZACIÓN: " + e.getMessage());
-            e.printStackTrace();
             configurarValoresPorDefecto();
         }
     }
@@ -219,12 +219,11 @@ public class VistaPreviaPresupuestoController implements Initializable {
             
         } catch (Exception e) {
             System.err.println("VistaPreviaController: ❌ Error al cargar datos: " + e.getMessage());
-            e.printStackTrace();
             configurarValoresPorDefecto();
         }
     }
     
-    // ========== MÉTODO: CARGAR EXTRAS EN LISTA ==========
+    // MÉTODO: CARGAR EXTRAS EN LISTA 
     private void cargarExtrasEnLista(SesionTemporal sesion) {
         System.out.println("🔍 === CARGANDO EXTRAS EN LISTA ===");
         
@@ -306,14 +305,13 @@ public class VistaPreviaPresupuestoController implements Initializable {
             
         } catch (Exception e) {
             System.err.println("❌ ERROR al cargar extras: " + e.getMessage());
-            e.printStackTrace();
             mostrarSinExtras();
         }
         
-        System.out.println("🔍 === FIN CARGA DE EXTRAS ===");
+        System.out.println("🔍 FIN CARGA DE EXTRAS ");
     }
 
-    // ========== MÉTODO AUXILIAR PARA MOSTRAR "SIN EXTRAS" ==========
+    // MÉTODO AUXILIAR PARA MOSTRAR "SIN EXTRAS" 
     private void mostrarSinExtras() {
         try {
             if (listaExtras != null) {
@@ -347,7 +345,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
         System.out.println("VistaPreviaController: 🔄 Generando PDF...");
         try {
             if (!validarDatosCompletos()) {
-                mostrarAlerta("Por favor complete todos los campos antes de imprimir.", Alert.AlertType.WARNING);
+                mostrarAlerta("Por favor complete todos los campos antes de guardar.", Alert.AlertType.WARNING);
                 return;
             }
 
@@ -361,7 +359,6 @@ public class VistaPreviaPresupuestoController implements Initializable {
 
         } catch (Exception e) {
             System.err.println("VistaPreviaController: ❌ Error al imprimir: " + e.getMessage());
-            e.printStackTrace();
             mostrarAlerta("Error inesperado: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
@@ -458,7 +455,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
         }
     }
 
-    // ========== MÉTODO AUXILIAR: SOLICITAR EMAIL MANUAL ==========
+    // MÉTODO AUXILIAR: SOLICITAR EMAIL MANUAL
     private String solicitarEmailManual(String emailSugerido) {
         TextInputDialog dialog = new TextInputDialog(emailSugerido);
         dialog.setTitle("Enviar Presupuesto por Email");
@@ -476,7 +473,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
         return null; // Usuario canceló o no ingresó nada
     }
 
-    // ========== MÉTODO AUXILIAR: VALIDAR EMAIL ==========
+    // MÉTODO AUXILIAR: VALIDAR EMAIL
     private boolean esEmailValido(String email) {
         if (email == null || email.trim().isEmpty()) {
             return false;
@@ -544,10 +541,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
         }
     }
 
-    // ============================================================================
     // MÉTODOS AUXILIARES
-    // ============================================================================
-    
     private boolean validarDatosCompletos() {
         try {
             if (lblNombre == null || lblNombre.getText().equals("-") || 
@@ -671,136 +665,142 @@ public class VistaPreviaPresupuestoController implements Initializable {
                 // Guardar en base de datos usando tu estructura existente
                 return guardarPresupuestoEnBD(sesion, archivo.getPath(), nombreArchivo);
                 
-            } catch (Exception pdfException) {
+            } catch (DocumentException | FileNotFoundException pdfException) {
                 System.err.println("❌ Error generando PDF: " + pdfException.getMessage());
-                pdfException.printStackTrace();
                 return false;
             }
             
         } catch (Exception e) {
             System.err.println("VistaPreviaController: ❌ Error general al generar PDF: " + e.getMessage());
-            e.printStackTrace();
             return false;
         }
     }
 
-    // ========== MÉTODO: GUARDAR PRESUPUESTO EN BASE DE DATOS ==========
-    private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, String nombreArchivo) {
-        int intentos = 0;
-        int maxIntentos = 3;
-        
-        while (intentos < maxIntentos) {
-            try (java.sql.Connection conn = database.Conexion.conectar()) {
-                System.out.println("💾 Guardando presupuesto en base de datos... (Intento " + (intentos + 1) + ")");
-                
-                // Generar número de presupuesto único
-                String numeroPresupuesto = generarNumeroPresupuesto();
-                
-                // Preparar resumen de extras para el campo extras_detalle
-                String extrasDetalle = "";
-                double totalExtras = 0.0;
-                
-                if (sesion.tieneExtras()) {
-                    StringBuilder extrasBuilder = new StringBuilder();
-                    java.util.List<modelos.Extra> extras = sesion.getExtrasSeleccionados();
-                    
-                    for (modelos.Extra extra : extras) {
-                        if (extra.getCantidad() > 0) {
-                            if (extrasBuilder.length() > 0) {
-                                extrasBuilder.append("; ");
-                            }
-                            double subtotal = extra.getPrecio() * extra.getCantidad();
-                            extrasBuilder.append(extra.getNombre())
-                                       .append(" x").append(extra.getCantidad())
-                                       .append(" ($").append(String.format("%.2f", subtotal)).append(")");
-                            totalExtras += subtotal;
-                        }
-                    }
-                    extrasDetalle = extrasBuilder.toString();
-                }
-                
-                // SQL adaptado a tu estructura
-                String sql = "INSERT INTO presupuestos (" +
-                            "numero_presupuesto, cliente_id, cliente_nombre, cliente_rfc, cliente_telefono, cliente_email, " +
-                            "paquete_id, paquete_nombre, paquete_precio, " +
-                            "extras_detalle, total_extras, total_general, " +
-                            "horario, plazos_pago, metodo_pago, " +
-                            "nombre_archivo_pdf, ruta_archivo_pdf, " +
-                            "fecha_creacion, valido_hasta, estado" +
-                            ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                
-                java.sql.PreparedStatement stmt = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
-                
-                // Llenar parámetros
-                stmt.setString(1, numeroPresupuesto);
-                stmt.setInt(2, sesion.getClienteId());
-                stmt.setString(3, sesion.getClienteNombreCompleto());
-                stmt.setString(4, sesion.getClienteRfc());
-                stmt.setString(5, sesion.getClienteTelefono());
-                stmt.setString(6, sesion.getClienteEmail());
-                stmt.setInt(7, sesion.getPaqueteId());
-                stmt.setString(8, sesion.getPaqueteNombre());
-                stmt.setDouble(9, sesion.getPaquetePrecio());
-                stmt.setString(10, extrasDetalle);
-                stmt.setDouble(11, totalExtras);
-                stmt.setDouble(12, sesion.getTotalGeneral());
-                stmt.setString(13, mautinoRadio.isSelected() ? "Matutino" : "Vespertino");
-                stmt.setString(14, plazosItem.getText());
-                stmt.setString(15, metodoPagoItem.getText());
-                stmt.setString(16, nombreArchivo);
-                stmt.setString(17, rutaPDF);
-                stmt.setTimestamp(18, java.sql.Timestamp.valueOf(LocalDate.now().atStartOfDay()));
-                stmt.setDate(19, java.sql.Date.valueOf(LocalDate.now().plusDays(30))); // Válido por 30 días
-                stmt.setString(20, "Pendiente");
-                
-                int filasAfectadas = stmt.executeUpdate();
-                
-                if (filasAfectadas > 0) {
-                    // Obtener el ID del presupuesto insertado
-                    java.sql.ResultSet generatedKeys = stmt.getGeneratedKeys();
-                    if (generatedKeys.next()) {
-                        int presupuestoId = generatedKeys.getInt(1);
-                        
-                        // Guardar extras individuales en presupuesto_extras
-                        if (sesion.tieneExtras()) {
-                            guardarExtrasIndividuales(conn, presupuestoId, sesion.getExtrasSeleccionados());
-                        }
-                        
-                        System.out.println("✅ Presupuesto guardado con número: " + numeroPresupuesto);
-                        System.out.println("✅ ID del presupuesto: " + presupuestoId);
-                        return true;
-                    }
-                }
-                
-                return false;
-                
-            } catch (java.sql.SQLIntegrityConstraintViolationException e) {
-                intentos++;
-                System.err.println("⚠️ Número de presupuesto duplicado, reintentando... (" + intentos + "/" + maxIntentos + ")");
-                
-                if (intentos >= maxIntentos) {
-                    System.err.println("❌ Error: No se pudo generar un número único después de " + maxIntentos + " intentos");
-                    return false;
-                }
-                
-                // Esperar un poco antes del siguiente intento
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-                
+    /// ========== MÉTODO MEJORADO: GUARDAR PDF COMO BLOB EN BD ==========
+private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, String nombreArchivo) {
+    int intentos = 0;
+    int maxIntentos = 3;
+    
+    while (intentos < maxIntentos) {
+        try (java.sql.Connection conn = database.Conexion.conectar()) {
+            System.out.println("💾 Guardando presupuesto con PDF en base de datos... (Intento " + (intentos + 1) + ")");
+            
+            // Leer el archivo PDF como bytes
+            byte[] pdfBytes = null;
+            try {
+                java.nio.file.Path pdfPath = java.nio.file.Paths.get(rutaPDF);
+                pdfBytes = java.nio.file.Files.readAllBytes(pdfPath);
+                System.out.println("✅ PDF leído: " + pdfBytes.length + " bytes");
             } catch (Exception e) {
-                System.err.println("❌ Error al guardar presupuesto en BD: " + e.getMessage());
-                e.printStackTrace();
+                System.err.println("❌ Error leyendo PDF: " + e.getMessage());
                 return false;
             }
+            
+            // Generar número de presupuesto único
+            String numeroPresupuesto = generarNumeroPresupuesto();
+            
+            // Preparar resumen de extras
+            String extrasDetalle = "";
+            double totalExtras = 0.0;
+            
+            if (sesion.tieneExtras()) {
+                StringBuilder extrasBuilder = new StringBuilder();
+                java.util.List<modelos.Extra> extras = sesion.getExtrasSeleccionados();
+                
+                for (modelos.Extra extra : extras) {
+                    if (extra.getCantidad() > 0) {
+                        if (extrasBuilder.length() > 0) {
+                            extrasBuilder.append("; ");
+                        }
+                        double subtotal = extra.getPrecio() * extra.getCantidad();
+                        extrasBuilder.append(extra.getNombre())
+                                   .append(" x").append(extra.getCantidad())
+                                   .append(" ($").append(String.format("%.2f", subtotal)).append(")");
+                        totalExtras += subtotal;
+                    }
+                }
+                extrasDetalle = extrasBuilder.toString();
+            }
+            
+            // SQL CON BLOB - AGREGAMOS archivo_pdf_contenido
+            String sql = "INSERT INTO presupuestos (" +
+                        "numero_presupuesto, cliente_id, cliente_nombre, cliente_rfc, cliente_telefono, cliente_email, " +
+                        "paquete_id, paquete_nombre, paquete_precio, " +
+                        "extras_detalle, total_extras, total_general, " +
+                        "horario, plazos_pago, metodo_pago, " +
+                        "nombre_archivo_pdf, ruta_archivo_pdf, archivo_pdf_contenido, " +
+                        "fecha_creacion, valido_hasta, estado" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            java.sql.PreparedStatement stmt = conn.prepareStatement(sql, java.sql.Statement.RETURN_GENERATED_KEYS);
+            
+            // Llenar parámetros
+            stmt.setString(1, numeroPresupuesto);
+            stmt.setInt(2, sesion.getClienteId());
+            stmt.setString(3, sesion.getClienteNombreCompleto());
+            stmt.setString(4, sesion.getClienteRfc());
+            stmt.setString(5, sesion.getClienteTelefono());
+            stmt.setString(6, sesion.getClienteEmail());
+            stmt.setInt(7, sesion.getPaqueteId());
+            stmt.setString(8, sesion.getPaqueteNombre());
+            stmt.setDouble(9, sesion.getPaquetePrecio());
+            stmt.setString(10, extrasDetalle);
+            stmt.setDouble(11, totalExtras);
+            stmt.setDouble(12, sesion.getTotalGeneral());
+            stmt.setString(13, mautinoRadio.isSelected() ? "Matutino" : "Vespertino");
+            stmt.setString(14, plazosItem.getText());
+            stmt.setString(15, metodoPagoItem.getText());
+            stmt.setString(16, nombreArchivo);
+            stmt.setString(17, rutaPDF);
+            stmt.setBytes(18, pdfBytes); // ¡AQUÍ GUARDAMOS EL PDF COMPLETO!
+            stmt.setTimestamp(19, java.sql.Timestamp.valueOf(LocalDate.now().atStartOfDay()));
+            stmt.setDate(20, java.sql.Date.valueOf(LocalDate.now().plusDays(30)));
+            stmt.setString(21, "Pendiente");
+            
+            int filasAfectadas = stmt.executeUpdate();
+            
+            if (filasAfectadas > 0) {
+                java.sql.ResultSet generatedKeys = stmt.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    int presupuestoId = generatedKeys.getInt(1);
+                    
+                    if (sesion.tieneExtras()) {
+                        guardarExtrasIndividuales(conn, presupuestoId, sesion.getExtrasSeleccionados());
+                    }
+                    
+                    System.out.println("✅ Presupuesto Y PDF guardados con número: " + numeroPresupuesto);
+                    System.out.println("✅ Tamaño del PDF guardado: " + pdfBytes.length + " bytes");
+                    return true;
+                }
+            }
+            
+            return false;
+            
+        } catch (java.sql.SQLIntegrityConstraintViolationException e) {
+            intentos++;
+            System.err.println("⚠️ Número de presupuesto duplicado, reintentando... (" + intentos + "/" + maxIntentos + ")");
+            
+            if (intentos >= maxIntentos) {
+                System.err.println("❌ Error: No se pudo generar un número único después de " + maxIntentos + " intentos");
+                return false;
+            }
+            
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error al guardar presupuesto en BD: " + e.getMessage());
+            return false;
         }
-        
-        return false;
     }
+    
+    return false;
+}
 
-    // ========== MÉTODO: GUARDAR EXTRAS INDIVIDUALES ==========
+    // MÉTODO: GUARDAR EXTRAS INDIVIDUALES
     private void guardarExtrasIndividuales(java.sql.Connection conn, int presupuestoId, List<modelos.Extra> extras) {
         try {
             String sqlExtras = "INSERT INTO presupuesto_extras (presupuesto_id, extra_id, cantidad) VALUES (?, ?, ?)";
@@ -818,10 +818,41 @@ public class VistaPreviaPresupuestoController implements Initializable {
             int[] resultados = stmtExtras.executeBatch();
             System.out.println("✅ " + resultados.length + " extras guardados individualmente");
             
-        } catch (Exception e) {
+        } catch (SQLException e) {
             System.err.println("❌ Error al guardar extras individuales: " + e.getMessage());
         }
     }
+    
+    public static boolean descargarPDFDesdeBD(int presupuestoId, String rutaDestino) {
+    try (java.sql.Connection conn = database.Conexion.conectar()) {
+        
+        String sql = "SELECT archivo_pdf_contenido, nombre_archivo_pdf FROM presupuestos WHERE id = ?";
+        java.sql.PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, presupuestoId);
+        
+        java.sql.ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+            String nombreArchivo = rs.getString("nombre_archivo_pdf");
+            
+            if (pdfBytes != null && pdfBytes.length > 0) {
+                // Crear archivo
+                java.io.File archivo = new java.io.File(rutaDestino, nombreArchivo);
+                java.nio.file.Files.write(archivo.toPath(), pdfBytes);
+                
+                System.out.println("✅ PDF descargado: " + archivo.getAbsolutePath());
+                return true;
+            }
+        }
+        
+        return false;
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error descargando PDF: " + e.getMessage());
+        return false;
+    }
+}
 
     // ========== MÉTODO: GENERAR NÚMERO DE PRESUPUESTO ==========
     private String generarNumeroPresupuesto() {
@@ -860,7 +891,6 @@ public class VistaPreviaPresupuestoController implements Initializable {
             
         } catch (Exception e) {
             System.err.println("❌ Error generando número de presupuesto: " + e.getMessage());
-            e.printStackTrace();
             
             // Fallback con timestamp
             String fechaHoy = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -922,9 +952,8 @@ public class VistaPreviaPresupuestoController implements Initializable {
             System.out.println("VistaPreviaController: ✅ Email enviado exitosamente a: " + emailCliente);
             return true;
             
-        } catch (Exception e) {
+        } catch (UnsupportedEncodingException | MessagingException e) {
             System.err.println("VistaPreviaController: ❌ Error al enviar email: " + e.getMessage());
-            e.printStackTrace();
             
             // Mostrar información específica para Hostinger
             if (e.getMessage().contains("Authentication") || e.getMessage().contains("Username")) {
@@ -939,7 +968,7 @@ public class VistaPreviaPresupuestoController implements Initializable {
         }
     }
     
-    // ========== MÉTODO: CREAR CONTENIDO HTML DEL EMAIL ==========
+    // MÉTODO: CREAR CONTENIDO HTML DEL EMAIL 
     private String crearContenidoEmailHTML(SesionTemporal sesion, String nombreCliente) {
         String horario = mautinoRadio.isSelected() ? "Matutino" : "Vespertino";
         String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));

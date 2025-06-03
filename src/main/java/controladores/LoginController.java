@@ -14,8 +14,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
     public class LoginController {
-        private static final boolean DEBUG_MODE = false; // Cambia a true solo cuando necesites debug
-
+        private static final boolean DEBUG_MODE = false;
         private void debug(String mensaje) {
             if (DEBUG_MODE) {
                 System.out.println(mensaje);
@@ -23,7 +22,7 @@ import java.sql.SQLException;
         }
 
     @FXML private TextField txtUsuario;
-    @FXML private PasswordField txtContrasena;  // Coincide con el FXML
+    @FXML private PasswordField txtContrasena; 
     @FXML private Label lblMensaje;
     @FXML private Button btnIngresar;
 
@@ -80,9 +79,8 @@ import java.sql.SQLException;
             } else {
                 mostrarError("Usuario o contraseña incorrectos.");
             }
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException | SQLException e) {
             mostrarError("Error de conexión: " + e.getMessage());
-            e.printStackTrace();
         } finally {
             btnIngresar.setDisable(false);
         }

@@ -33,6 +33,7 @@ import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.text.BaseColor;
+import java.io.FileNotFoundException;
 
 // Imports para JavaMail
 import javax.mail.*;
@@ -72,7 +73,7 @@ public class ClientesController {
     // CONFIGURACIÓN DE EMAIL - CAMBIAR POR TUS DATOS REALES
     private static final String EMAIL_EMPRESA = "bienvenido@forgestudio.com.mx";
     private static final String PASSWORD_EMAIL = "Eventya321@";
-    private static final String NOMBRE_EMPRESA = "ForgeStudio";
+    private static final String NOMBRE_EMPRESA = "Segundo Castillo - ¡Hacemos tu evento realidad!";
 
     private ObservableList<ClienteContrato> listaClientes = FXCollections.observableArrayList();
     private ClienteContrato clienteActualmenteSeleccionado = null;
@@ -170,10 +171,11 @@ public class ClientesController {
         listaClientes.clear();
         
         try (Connection conn = Conexion.conectar()) {
-            System.out.println("=== CARGANDO CLIENTES CON PRESUPUESTOS ACTIVOS ===");
+            System.out.println(" CARGANDO CLIENTES CON PRESUPUESTOS ACTIVOS ");
             
+            // CONSULTA CORREGIDA PARA EVITAR DUPLICADOS
             String sql = """
-                SELECT 
+                SELECT DISTINCT
                     c.id as cliente_id,
                     c.nombre,
                     c.apellido_paterno,
@@ -189,9 +191,14 @@ public class ClientesController {
                     END as estado_cliente,
                     DATEDIFF(NOW(), p.fecha_creacion) as dias_desde_presupuesto
                 FROM clientes c
-                INNER JOIN presupuestos p ON c.id = p.cliente_id
+                INNER JOIN (
+                    SELECT cliente_id, MAX(fecha_creacion) as max_fecha
+                    FROM presupuestos 
+                    WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+                    GROUP BY cliente_id
+                ) latest_p ON c.id = latest_p.cliente_id
+                INNER JOIN presupuestos p ON c.id = p.cliente_id AND p.fecha_creacion = latest_p.max_fecha
                 LEFT JOIN paquetes paq ON p.paquete_id = paq.id
-                WHERE p.fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
                 ORDER BY p.fecha_creacion DESC
                 """;
             
@@ -253,7 +260,7 @@ public class ClientesController {
             tablaClientes.setItems(listaClientes);
             lblTotal.setText(String.valueOf(listaClientes.size()));
             
-            System.out.println("✅ Cargados " + listaClientes.size() + " clientes con presupuestos activos");
+            System.out.println("✅ Cargados " + listaClientes.size() + " clientes únicos con presupuestos activos");
             
         } catch (SQLException e) {
             System.err.println("❌ Error al cargar presupuestos: " + e.getMessage());
@@ -262,118 +269,127 @@ public class ClientesController {
         }
     }
 
-    // ========== MÉTODOS PARA DATOS COMPLETOS DEL PRESUPUESTO ==========
+    // MÉTODOS PARA DATOS COMPLETOS DEL PRESUPUESTO 
 
-    private DatosPresupuestoCompleto obtenerDatosPresupuestoCompleto(int clienteId) {
-        try (Connection conn = Conexion.conectar()) {
-            DatosPresupuestoCompleto datos = new DatosPresupuestoCompleto();
+   // ========== MÉTODO AUXILIAR MEJORADO: OBTENER DATOS COMPLETOS ==========
+private DatosPresupuestoCompleto obtenerDatosPresupuestoCompleto(int clienteId) {
+    try (Connection conn = Conexion.conectar()) {
+        DatosPresupuestoCompleto datos = new DatosPresupuestoCompleto();
+        
+        // Consulta principal del presupuesto
+        String sqlPresupuesto = """
+            SELECT 
+                p.id as presupuesto_id,
+                p.fecha_creacion,
+                p.total_extras,
+                p.total_general,
+                p.paquete_precio,
+                paq.nombre as paquete_nombre,
+                paq.descripcion as paquete_descripcion
+            FROM presupuestos p
+            LEFT JOIN paquetes paq ON p.paquete_id = paq.id
+            WHERE p.cliente_id = ?
+            ORDER BY p.fecha_creacion DESC LIMIT 1
+            """;
+        
+        PreparedStatement stmtPresupuesto = conn.prepareStatement(sqlPresupuesto);
+        stmtPresupuesto.setInt(1, clienteId);
+        ResultSet rsPresupuesto = stmtPresupuesto.executeQuery();
+        
+        if (rsPresupuesto.next()) {
+            // Datos básicos
+            datos.presupuestoId = rsPresupuesto.getInt("presupuesto_id");
+            datos.fechaCreacion = rsPresupuesto.getDate("fecha_creacion");
+            datos.total = rsPresupuesto.getDouble("total_general");
+            datos.paqueteNombre = rsPresupuesto.getString("paquete_nombre");
+            datos.paqueteDescripcion = rsPresupuesto.getString("paquete_descripcion");
+            datos.paquetePrecio = rsPresupuesto.getDouble("paquete_precio");
             
-            // Consulta principal del presupuesto
-            String sqlPresupuesto = """
+            // Calcular subtotal e IVA
+            double totalExtras = rsPresupuesto.getDouble("total_extras");
+            datos.subtotal = datos.paquetePrecio + totalExtras;
+            datos.iva = datos.subtotal * 0.16; // 16% de IVA
+            
+            // Verificar si el total incluye IVA
+            if (Math.abs(datos.total - (datos.subtotal + datos.iva)) < 0.01) {
+                // El total incluye IVA
+            } else {
+                // El total no incluye IVA, ajustar
+                datos.subtotal = datos.total;
+                datos.iva = 0;
+            }
+            
+            // Obtener extras usando la tabla presupuesto_extras
+            String sqlExtras = """
                 SELECT 
-                    p.id as presupuesto_id,
-                    p.fecha_creacion,
-                    p.subtotal,
-                    p.iva,
-                    p.total_general,
-                    paq.nombre as paquete_nombre,
-                    paq.descripcion as paquete_descripcion,
-                    paq.precio as paquete_precio
-                FROM presupuestos p
-                LEFT JOIN paquetes paq ON p.paquete_id = paq.id
-                WHERE p.cliente_id = ?
+                    e.id as extra_id,
+                    e.nombre as extra_nombre,
+                    e.precio as extra_precio,
+                    pe.cantidad
+                FROM presupuesto_extras pe
+                INNER JOIN extras e ON pe.extra_id = e.id
+                WHERE pe.presupuesto_id = ?
+                ORDER BY e.nombre
                 """;
             
-            PreparedStatement stmtPresupuesto = conn.prepareStatement(sqlPresupuesto);
-            stmtPresupuesto.setInt(1, clienteId);
-            ResultSet rsPresupuesto = stmtPresupuesto.executeQuery();
+            PreparedStatement stmtExtras = conn.prepareStatement(sqlExtras);
+            stmtExtras.setInt(1, datos.presupuestoId);
+            ResultSet rsExtras = stmtExtras.executeQuery();
             
-            if (rsPresupuesto.next()) {
-                // Datos básicos
-                datos.presupuestoId = rsPresupuesto.getInt("presupuesto_id");
-                datos.fechaCreacion = rsPresupuesto.getDate("fecha_creacion");
-                datos.subtotal = rsPresupuesto.getDouble("subtotal");
-                datos.iva = rsPresupuesto.getDouble("iva");
-                datos.total = rsPresupuesto.getDouble("total_general");
-                datos.paqueteNombre = rsPresupuesto.getString("paquete_nombre");
-                datos.paqueteDescripcion = rsPresupuesto.getString("paquete_descripcion");
-                datos.paquetePrecio = rsPresupuesto.getDouble("paquete_precio");
-                
-                // Obtener extras usando la clase Extra existente
-                String sqlExtras = """
-                    SELECT 
-                        e.id as extra_id,
-                        e.nombre as extra_nombre,
-                        e.descripcion as extra_descripcion,
-                        pe.cantidad,
-                        pe.precio_unitario,
-                        (pe.cantidad * pe.precio_unitario) as subtotal_extra
-                    FROM presupuesto_extras pe
-                    INNER JOIN extras e ON pe.extra_id = e.id
-                    WHERE pe.presupuesto_id = ?
-                    ORDER BY e.nombre
-                    """;
-                
-                PreparedStatement stmtExtras = conn.prepareStatement(sqlExtras);
-                stmtExtras.setInt(1, datos.presupuestoId);
-                ResultSet rsExtras = stmtExtras.executeQuery();
-                
-                List<Extra> extras = new ArrayList<>();
-                while (rsExtras.next()) {
-                    // Usar el constructor existente de Extra
-                    Extra extra = new Extra(
-                        rsExtras.getInt("extra_id"),
-                        rsExtras.getString("extra_nombre"),
-                        rsExtras.getDouble("precio_unitario"),
-                        rsExtras.getInt("cantidad")
-                    );
-                    extras.add(extra);
-                }
-                
-                datos.extras = extras;
-                return datos;
+            List<Extra> extras = new ArrayList<>();
+            while (rsExtras.next()) {
+                Extra extra = new Extra(
+                    rsExtras.getInt("extra_id"),
+                    rsExtras.getString("extra_nombre"),
+                    rsExtras.getDouble("extra_precio"),
+                    rsExtras.getInt("cantidad")
+                );
+                extras.add(extra);
             }
             
-        } catch (SQLException e) {
-            System.err.println("❌ Error al obtener presupuesto completo: " + e.getMessage());
-            e.printStackTrace();
+            datos.extras = extras;
+            return datos;
         }
         
-        return null;
+    } catch (SQLException e) {
+        System.err.println("❌ Error al obtener presupuesto completo: " + e.getMessage());
     }
+    
+    return null;
+}
 
-    // ========== MÉTODOS PARA GENERAR PDF COMPLETO ==========
+    // MÉTODOS PARA GENERAR PDF COMPLETO
 
-    private void generarPDFPresupuestoCompleto(ClienteContrato cliente) {
-        try {
-            // Obtener datos completos del presupuesto
-            DatosPresupuestoCompleto datos = obtenerDatosPresupuestoCompleto(cliente.getClienteId());
-            
-            if (datos == null) {
-                mostrarMensaje("Error", "No se pudieron obtener los datos del presupuesto", "#e74c3c");
-                return;
-            }
-            
-            // Crear documento PDF
-            Document documento = new Document(PageSize.A4);
-            
-            // Crear carpeta si no existe
-            File carpetaPDF = new File("Presupuestos");
-            if (!carpetaPDF.exists()) {
-                carpetaPDF.mkdirs();
-            }
-            
-            // Nombre del archivo
-            String nombreArchivo = "presupuesto_" + 
-                                  cliente.getNombreCompleto().replace(" ", "_").replace(".", "") + 
-                                  "_" + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")) + 
-                                  ".pdf";
-            
-            String rutaCompleta = "Presupuestos/" + nombreArchivo;
-            
-            // Crear writer
-            PdfWriter writer = PdfWriter.getInstance(documento, new FileOutputStream(rutaCompleta));
-            documento.open();
+   private void generarPDFPresupuestoCompleto(ClienteContrato cliente) {
+    try {
+        // Obtener datos completos del presupuesto
+        DatosPresupuestoCompleto datos = obtenerDatosPresupuestoCompleto(cliente.getClienteId());
+        
+        if (datos == null) {
+            mostrarMensaje("Error", "No se pudieron obtener los datos del presupuesto", "#e74c3c");
+            return;
+        }
+        
+        // Crear documento PDF
+        Document documento = new Document(PageSize.A4);
+        
+        // Crear carpeta si no existe
+        File carpetaPDF = new File("Presupuestos");
+        if (!carpetaPDF.exists()) {
+            carpetaPDF.mkdirs();
+        }
+        
+        // Nombre del archivo
+        String nombreArchivo = "presupuesto_" + 
+                              cliente.getNombreCompleto().replace(" ", "_").replace(".", "") + 
+                              "_" + java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")) + 
+                              ".pdf";
+        
+        String rutaCompleta = "Presupuestos/" + nombreArchivo;
+        
+        // Crear writer
+        PdfWriter writer = PdfWriter.getInstance(documento, new FileOutputStream(rutaCompleta));
+        documento.open();
             
             // Fuentes
             Font tituloFont = new Font(Font.FontFamily.HELVETICA, 24, Font.BOLD, BaseColor.BLUE);
@@ -382,7 +398,7 @@ public class ClientesController {
             Font boldFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, BaseColor.BLACK);
             Font pequenaFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.GRAY);
             
-            // === HEADER ===
+            // HEADER
             Paragraph titulo = new Paragraph("🎨 FORGESTUDIO", tituloFont);
             titulo.setAlignment(Element.ALIGN_CENTER);
             titulo.setSpacingAfter(5);
@@ -393,7 +409,7 @@ public class ClientesController {
             subtitulo.setSpacingAfter(20);
             documento.add(subtitulo);
             
-            // === INFORMACIÓN DEL CLIENTE ===
+            // INFORMACIÓN DEL CLIENTE
             documento.add(new Paragraph("INFORMACIÓN DEL CLIENTE", subtituloFont));
             documento.add(new Paragraph("Nombre: " + cliente.getNombreCompleto(), normalFont));
             documento.add(new Paragraph("Teléfono: " + cliente.getTelefono(), normalFont));
@@ -401,7 +417,7 @@ public class ClientesController {
             documento.add(new Paragraph("Fecha del presupuesto: " + cliente.getFechaContrato(), normalFont));
             documento.add(new Paragraph(" ", normalFont));
             
-            // === PAQUETE BASE ===
+            // PAQUETE BASE
             documento.add(new Paragraph("PAQUETE SELECCIONADO", subtituloFont));
             documento.add(new Paragraph("Nombre: " + datos.paqueteNombre, boldFont));
             if (datos.paqueteDescripcion != null && !datos.paqueteDescripcion.isEmpty()) {
@@ -410,7 +426,7 @@ public class ClientesController {
             documento.add(new Paragraph("Precio: $" + String.format("%.0f", datos.paquetePrecio), normalFont));
             documento.add(new Paragraph(" ", normalFont));
             
-            // === EXTRAS ADICIONALES ===
+            // EXTRAS ADICIONALES
             if (datos.extras != null && !datos.extras.isEmpty()) {
                 boolean tieneExtrasSeleccionados = datos.extras.stream().anyMatch(extra -> extra.getCantidad() > 0);
                 
@@ -430,7 +446,7 @@ public class ClientesController {
                 }
             }
             
-            // === RESUMEN FINANCIERO ===
+            // RESUMEN FINANCIERO
             documento.add(new Paragraph("RESUMEN FINANCIERO", subtituloFont));
             documento.add(new Paragraph("Subtotal: $" + String.format("%.0f", datos.subtotal), normalFont));
             documento.add(new Paragraph("IVA (16%): $" + String.format("%.0f", datos.iva), normalFont));
@@ -441,7 +457,7 @@ public class ClientesController {
             total.setSpacingBefore(10);
             documento.add(total);
             
-            // === PIE DE PÁGINA ===
+            // PIE DE PÁGINA
             documento.add(new Paragraph(" ", normalFont));
             documento.add(new Paragraph(" ", normalFont));
             Paragraph contactInfo = new Paragraph("CONTACTO: bienvenido@forgestudio.com.mx", normalFont);
@@ -458,24 +474,112 @@ public class ClientesController {
             documento.close();
             
             // Guardar ruta en BD
-            guardarRutaPDFEnBD(cliente.getClienteId(), rutaCompleta, nombreArchivo);
+            guardarPDFComoBLOBEnBD(cliente.getClienteId(), rutaCompleta, nombreArchivo);
             
             // Abrir PDF
             abrirPDF(rutaCompleta);
             
             // Mostrar mensaje de éxito
-            mostrarMensaje("PDF Generado", 
-                          "PDF completo generado exitosamente:\n" + nombreArchivo + "\n\n" +
-                          "Incluye paquete base y todos los extras", "#27ae60");
+             mostrarMensaje("PDF Generado", 
+                      "PDF completo generado exitosamente:\n" + nombreArchivo + "\n\n" +
+                      "✅ Guardado localmente\n✅ Guardado en base de datos\n" +
+                      "Incluye paquete base y todos los extras", "#27ae60");
             
-        } catch (Exception e) {
-            System.err.println("❌ Error al generar PDF completo: " + e.getMessage());
-            e.printStackTrace();
-            mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
-        }
+        } catch (DocumentException | FileNotFoundException e) {
+        System.err.println("❌ Error al generar PDF completo: " + e.getMessage());
+        mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
     }
+}
+   
+   // ========== MÉTODO NUEVO: GUARDAR PDF COMO BLOB ==========
+private void guardarPDFComoBLOBEnBD(int clienteId, String rutaCompleta, String nombreArchivo) {
+    try (Connection conn = Conexion.conectar()) {
+        
+        // ✅ LEER EL ARCHIVO PDF COMO BYTES
+        byte[] pdfBytes = null;
+        try {
+            java.nio.file.Path pdfPath = java.nio.file.Paths.get(rutaCompleta);
+            pdfBytes = java.nio.file.Files.readAllBytes(pdfPath);
+            System.out.println("✅ PDF leído para base de datos: " + pdfBytes.length + " bytes");
+        } catch (Exception e) {
+            System.err.println("❌ Error leyendo PDF: " + e.getMessage());
+            return;
+        }
+        
+        // ✅ ACTUALIZAR CON BLOB
+        String sqlActualizar = "UPDATE presupuestos SET " +
+                              "ruta_archivo_pdf = ?, " +
+                              "nombre_archivo_pdf = ?, " +
+                              "archivo_pdf_contenido = ? " +
+                              "WHERE cliente_id = ?";
+        
+        PreparedStatement stmt = conn.prepareStatement(sqlActualizar);
+        stmt.setString(1, rutaCompleta);
+        stmt.setString(2, nombreArchivo);
+        stmt.setBytes(3, pdfBytes);  // ← AQUÍ SE GUARDA EL PDF COMPLETO
+        stmt.setInt(4, clienteId);
+        
+        int filasActualizadas = stmt.executeUpdate();
+        
+        if (filasActualizadas > 0) {
+            System.out.println("✅ PDF guardado en BD como BLOB: " + pdfBytes.length + " bytes");
+            System.out.println("✅ Ruta del PDF: " + rutaCompleta);
+            System.out.println("✅ ¡Ahora disponible desde cualquier computadora!");
+        } else {
+            System.out.println("⚠️ No se pudo actualizar el PDF en BD");
+        }
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error al guardar PDF BLOB en BD: " + e.getMessage());
+    }
+}
+    
+    // ========== MÉTODO NUEVO: DESCARGAR PDF DESDE BD ==========
+public static boolean descargarPDFPresupuestoDesdeBD(int clienteId, String rutaDestino) {
+    try (Connection conn = Conexion.conectar()) {
+        
+        String sql = "SELECT archivo_pdf_contenido, nombre_archivo_pdf, cliente_nombre " +
+                    "FROM presupuestos WHERE cliente_id = ? " +
+                    "ORDER BY fecha_creacion DESC LIMIT 1";
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, clienteId);
+        
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+            String nombreArchivo = rs.getString("nombre_archivo_pdf");
+            String clienteNombre = rs.getString("cliente_nombre");
+            
+            if (pdfBytes != null && pdfBytes.length > 0) {
+                // Si no hay nombre de archivo, generar uno
+                if (nombreArchivo == null || nombreArchivo.trim().isEmpty()) {
+                    nombreArchivo = "Presupuesto_" + clienteNombre.replace(" ", "_") + ".pdf";
+                }
+                
+                // Crear archivo
+                java.io.File archivo = new java.io.File(rutaDestino, nombreArchivo);
+                java.nio.file.Files.write(archivo.toPath(), pdfBytes);
+                
+                System.out.println("✅ Presupuesto descargado: " + archivo.getAbsolutePath());
+                return true;
+            } else {
+                System.err.println("❌ No hay contenido PDF en la base de datos para cliente ID: " + clienteId);
+                return false;
+            }
+        } else {
+            System.err.println("❌ No se encontró presupuesto para cliente ID: " + clienteId);
+            return false;
+        }
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error descargando presupuesto: " + e.getMessage());
+        return false;
+    }
+}
 
-    // ========== CONFIGURACIÓN DE EMAIL ==========
+    // CONFIGURACIÓN DE EMAIL
 
     private Properties configurarEmail() {
         Properties props = new Properties();
@@ -497,201 +601,322 @@ public class ClientesController {
         return props;
     }
 
-    private String crearContenidoEmailCompleto(ClienteContrato cliente) {
-        // Obtener datos completos del presupuesto
-        DatosPresupuestoCompleto datos = obtenerDatosPresupuestoCompleto(cliente.getClienteId());
+   // ========== MÉTODO SIMPLE: EMAIL COMPLETO SIN DEPENDENCIAS ==========
+private String crearContenidoEmailCompleto(ClienteContrato cliente) {
+    System.out.println("📧 Creando contenido de email completo para: " + cliente.getNombreCompleto());
+    
+    // Variables para almacenar datos del presupuesto
+    String paqueteNombre = cliente.getPaquete();
+    String paqueteDescripcion = "";
+    double paquetePrecio = 0.0;
+    double totalGeneral = 0.0;
+    String numeroPresupuesto = "";
+    String estadoPresupuesto = cliente.getEstado();
+    String extrasDetalle = "";
+    double totalExtras = 0.0;
+    
+    // Obtener datos de la base de datos
+    try (Connection conn = Conexion.conectar()) {
+        String sql = """
+            SELECT 
+                numero_presupuesto,
+                estado,
+                paquete_precio,
+                total_general,
+                extras_detalle,
+                total_extras,
+                paq.nombre as paquete_nombre,
+                paq.descripcion as paquete_descripcion
+            FROM presupuestos p
+            LEFT JOIN paquetes paq ON p.paquete_id = paq.id
+            WHERE p.cliente_id = ? 
+            ORDER BY p.fecha_creacion DESC 
+            LIMIT 1
+            """;
         
-        if (datos == null) {
-            // Si no se pueden obtener los datos completos, usar método básico
-            return crearContenidoEmailBasico(cliente);
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, cliente.getClienteId());
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            numeroPresupuesto = rs.getString("numero_presupuesto") != null ? rs.getString("numero_presupuesto") : "";
+            estadoPresupuesto = rs.getString("estado") != null ? rs.getString("estado") : cliente.getEstado();
+            paquetePrecio = rs.getDouble("paquete_precio");
+            totalGeneral = rs.getDouble("total_general");
+            extrasDetalle = rs.getString("extras_detalle") != null ? rs.getString("extras_detalle") : "";
+            totalExtras = rs.getDouble("total_extras");
+            
+            String paqNombre = rs.getString("paquete_nombre");
+            if (paqNombre != null) paqueteNombre = paqNombre;
+            
+            String paqDesc = rs.getString("paquete_descripcion");
+            if (paqDesc != null) paqueteDescripcion = paqDesc;
+            
+            System.out.println("✅ Datos obtenidos - Paquete: " + paqueteNombre + ", Total: $" + totalGeneral);
         }
+    } catch (SQLException e) {
+        System.err.println("❌ Error al obtener datos del presupuesto: " + e.getMessage());
+        // Usar datos básicos del cliente si hay error
+        totalGeneral = Double.parseDouble(cliente.getMontoTotal().replace("$", "").replace(",", ""));
+    }
+    
+    // Construir HTML del email
+    StringBuilder html = new StringBuilder();
+    
+    html.append("<!DOCTYPE html>")
+        .append("<html><head><meta charset='UTF-8'>")
+        .append("<style>")
+        .append("body { font-family: 'Segoe UI', Arial, sans-serif; color: #333; line-height: 1.6; margin: 0; padding: 0; background-color: #f5f5f5; }")
+        .append(".container { max-width: 700px; margin: 0 auto; background-color: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }")
+        .append(".header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center; }")
+        .append(".content { padding: 40px 30px; }")
+        .append(".seccion { margin-bottom: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid #667eea; }")
+        .append(".seccion h3 { margin-top: 0; color: #2c3e50; font-size: 18px; }")
+        .append(".tabla-info { width: 100%; border-collapse: collapse; }")
+        .append(".tabla-info td { padding: 10px; border-bottom: 1px solid #e9ecef; }")
+        .append(".tabla-info .label { font-weight: bold; color: #495057; width: 40%; }")
+        .append(".tabla-info .value { color: #2c3e50; }")
+        .append(".paquete-destacado { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 15px; margin: 25px 0; }")
+        .append(".resumen-financiero { background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%); padding: 25px; border-radius: 15px; margin: 25px 0; }")
+        .append(".info-adicional { background-color: #d1ecf1; padding: 20px; border-radius: 10px; border-left: 4px solid #0c5460; margin: 25px 0; }")
+        .append(".contacto { background-color: #d4edda; padding: 20px; border-radius: 10px; border-left: 4px solid #28a745; text-align: center; }")
+        .append("</style>")
+        .append("</head><body>")
         
-        StringBuilder contenidoHTML = new StringBuilder();
+        .append("<div class='container'>")
         
-        contenidoHTML.append("<html>")
-            .append("<body style=\"font-family: Arial, sans-serif; color: #333; line-height: 1.6;\">")
-            .append("<div style=\"max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;\">")
-            
-            // Header
-            .append("<div style=\"background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0;\">")
-            .append("<h1 style=\"margin: 0; font-size: 28px;\">🎨 FORGESTUDIO</h1>")
-            .append("<p style=\"margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;\">Creamos experiencias inolvidables</p>")
-            .append("</div>")
-            
-            // Contenido principal
-            .append("<div style=\"background-color: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);\">")
-            .append("<h2 style=\"color: #2c3e50; margin-top: 0;\">🎉 Presupuesto para su Evento</h2>")
-            
-            .append("<p>Estimado/a <strong>").append(cliente.getNombreCompleto()).append("</strong>,</p>")
-            
-            .append("<p>Nos complace presentarle el presupuesto personalizado para su evento especial. En <strong>ForgeStudio</strong>, nos especializamos en crear experiencias únicas e inolvidables.</p>")
-            
-            // Paquete base
-            .append("<div style=\"background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; border-radius: 10px; margin: 25px 0;\">")
-            .append("<h3 style=\"margin-top: 0; text-align: center;\">📦 Paquete Seleccionado</h3>")
-            .append("<div style=\"text-align: center; font-size: 18px;\">")
-            .append("<strong>").append(datos.paqueteNombre).append("</strong><br>")
-            .append("<span style=\"font-size: 16px; opacity: 0.9;\">$").append(String.format("%.0f", datos.paquetePrecio)).append("</span>")
+        // HEADER
+        .append("<div class='header'>")
+        .append("<h1 style='margin: 0; font-size: 32px;'>🎨 FORGESTUDIO</h1>")
+        .append("<p style='margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;'>Creamos experiencias inolvidables</p>")
+        .append("</div>")
+        
+        // CONTENIDO
+        .append("<div class='content'>")
+        .append("<h2 style='color: #2c3e50; margin-bottom: 20px;'>🎉 Presupuesto para su Evento</h2>")
+        .append("<p>Estimado/a <strong>").append(cliente.getNombreCompleto()).append("</strong>,</p>")
+        .append("<p>Nos complace presentarle el presupuesto personalizado para su evento especial. En <strong>ForgeStudio</strong>, nos especializamos en crear experiencias únicas e inolvidables.</p>");
+    
+    // === INFORMACIÓN DEL PRESUPUESTO ===
+    html.append("<div class='seccion'>")
+        .append("<h3>📋 Información del Presupuesto</h3>")
+        .append("<table class='tabla-info'>")
+        .append("<tr><td class='label'>📅 Fecha:</td><td class='value'>").append(cliente.getFechaContrato()).append("</td></tr>")
+        .append("<tr><td class='label'>📊 Estado del presupuesto:</td><td class='value'>").append(estadoPresupuesto).append("</td></tr>");
+    
+    if (!numeroPresupuesto.isEmpty()) {
+        html.append("<tr><td class='label'>🔢 Número de presupuesto:</td><td class='value'>").append(numeroPresupuesto).append("</td></tr>");
+    }
+    
+    html.append("<tr><td class='label'>⏰ Válido por:</td><td class='value'>30 días desde la fecha de generación</td></tr>")
+        .append("</table></div>");
+    
+    // === PAQUETE SELECCIONADO ===
+    html.append("<div class='paquete-destacado'>")
+        .append("<h3 style='margin: 0 0 15px 0;'>📦 Paquete Seleccionado</h3>")
+        .append("<div style='font-size: 24px; font-weight: bold; margin-bottom: 10px;'>").append(paqueteNombre).append("</div>");
+    
+    if (paquetePrecio > 0) {
+        html.append("<div style='font-size: 20px; opacity: 0.9;'>$").append(String.format("%.0f", paquetePrecio)).append(" MXN</div>");
+    } else {
+        html.append("<div style='font-size: 20px; opacity: 0.9;'>").append(cliente.getMontoTotal()).append("</div>");
+    }
+    
+    if (!paqueteDescripcion.isEmpty()) {
+        html.append("<div style='margin-top: 15px; padding: 15px; background-color: rgba(255,255,255,0.2); border-radius: 10px; font-size: 14px;'>")
+            .append("<strong>Descripción:</strong><br>").append(paqueteDescripcion)
+            .append("</div>");
+    }
+    
+    html.append("</div>");
+    
+    // === SERVICIOS ADICIONALES ===
+    html.append("<div class='seccion'>")
+        .append("<h3>✨ Servicios Adicionales</h3>");
+    
+    if (!extrasDetalle.isEmpty() && !extrasDetalle.equals("Sin extras")) {
+        html.append("<div style='background-color: white; padding: 15px; border-radius: 8px; border-left: 4px solid #3498db;'>")
+            .append("<p>").append(extrasDetalle.replace("\n", "<br>")).append("</p>")
             .append("</div>");
         
-        if (datos.paqueteDescripcion != null && !datos.paqueteDescripcion.isEmpty()) {
-            contenidoHTML.append("<p style=\"margin-top: 15px; font-size: 14px; opacity: 0.9; text-align: center;\">")
-                        .append(datos.paqueteDescripcion)
-                        .append("</p>");
+        if (totalExtras > 0) {
+            html.append("<div style='margin-top: 15px; padding: 15px; background-color: #e8f5e8; border-radius: 8px; text-align: right;'>")
+                .append("<strong style='color: #28a745; font-size: 18px;'>Total Servicios Adicionales: $")
+                .append(String.format("%.0f", totalExtras)).append(" MXN</strong>")
+                .append("</div>");
         }
+    } else {
+        html.append("<p style='color: #6c757d; font-style: italic; text-align: center; padding: 20px;'>")
+            .append("No se han seleccionado servicios adicionales para este presupuesto.")
+            .append("</p>");
+    }
+    
+    html.append("</div>");
+    
+    // === RESUMEN FINANCIERO ===
+    double subtotal = (paquetePrecio > 0 ? paquetePrecio : totalGeneral - totalExtras) + totalExtras;
+    
+    html.append("<div class='resumen-financiero'>")
+        .append("<h3 style='color: #2c3e50; margin: 0 0 20px 0; text-align: center;'>💰 Resumen Financiero</h3>")
+        .append("<table style='width: 100%; font-size: 16px;'>");
+    
+    if (paquetePrecio > 0) {
+        html.append("<tr><td style='padding: 8px 0; color: #495057;'>Paquete base:</td><td style='text-align: right; font-weight: bold;'>$").append(String.format("%.0f", paquetePrecio)).append("</td></tr>");
+    }
+    
+    if (totalExtras > 0) {
+        html.append("<tr><td style='padding: 8px 0; color: #495057;'>Servicios adicionales:</td><td style='text-align: right; font-weight: bold;'>$").append(String.format("%.0f", totalExtras)).append("</td></tr>");
+        html.append("<tr><td style='padding: 8px 0; color: #495057;'>Subtotal:</td><td style='text-align: right; font-weight: bold;'>$").append(String.format("%.0f", subtotal)).append("</td></tr>");
+    }
+    
+    html.append("<tr style='border-top: 3px solid #667eea; font-size: 20px; color: #667eea;'>")
+        .append("<td style='padding: 15px 0; font-weight: bold;'>TOTAL GENERAL:</td>")
+        .append("<td style='text-align: right; font-weight: bold;'>$").append(String.format("%.0f", totalGeneral)).append(" MXN</td>")
+        .append("</tr></table>")
+        .append("</div>");
+    
+    // === INFORMACIÓN ADICIONAL ===
+    html.append("<div class='info-adicional'>")
+        .append("<h3 style='color: #0c5460; margin-top: 0;'>ℹ️ Información Adicional</h3>")
+        .append("<ul style='color: #155724; line-height: 1.8;'>")
+        .append("<li>Este presupuesto es válido por 30 días desde su generación</li>")
+        .append("<li>Se requiere el 50% de anticipo para confirmar la reserva del evento</li>")
+        .append("<li>El evento incluye todos los servicios especificados en el paquete</li>")
+        .append("<li>Los precios están expresados en pesos mexicanos (MXN)</li>")
+        .append("<li>Para dudas o modificaciones, contáctanos inmediatamente</li>")
+        .append("</ul></div>");
+    
+    // Nota PDF adjunto
+    html.append("<div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; border-left: 4px solid #ffc107; margin: 25px 0; text-align: center;'>")
+        .append("<p style='margin: 0; color: #856404;'><strong>📎 Archivo Adjunto</strong></p>")
+        .append("<p style='margin: 10px 0 0 0; color: #856404;'>En el archivo PDF adjunto encontrará todos los detalles específicos y términos completos de su presupuesto.</p>")
+        .append("</div>");
+    
+    // === CONTACTO ===
+    html.append("<div class='contacto'>")
+        .append("<h3 style='color: #155724; margin-top: 0;'>📞 Contacto Directo</h3>")
+        .append("<p style='color: #155724; margin: 5px 0; font-size: 16px;'><strong>Email:</strong> ").append(EMAIL_EMPRESA).append("</p>")
+        .append("<p style='color: #155724; margin: 5px 0; font-size: 16px;'><strong>Empresa:</strong> ").append(NOMBRE_EMPRESA).append("</p>")
+        .append("<p style='color: #155724; margin: 15px 0 0 0; font-weight: bold;'>¡Estamos aquí para hacer de su evento algo especial!</p>")
+        .append("</div>");
+    
+    html.append("<p style='text-align: center; color: #7f8c8d; margin: 30px 0 20px 0;'>Gracias por confiar en <strong>ForgeStudio</strong> para su evento especial.</p>")
+        .append("<p style='text-align: center;'>Saludos cordiales,<br><strong style='color: #667eea; font-size: 18px;'>Equipo ForgeStudio</strong></p>")
+        .append("</div>");
+    
+    // FOOTER
+    html.append("<div style='text-align: center; padding: 20px; color: #7f8c8d; font-size: 12px; background-color: #f8f9fa;'>")
+        .append("<p>Este presupuesto fue generado automáticamente el ")
+        .append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")))
+        .append("</p>")
+        .append("<p>© ").append(java.time.Year.now()).append(" ForgeStudio - Todos los derechos reservados</p>")
+        .append("</div>")
+        .append("</div>")
+        .append("</body></html>");
+    
+    System.out.println("✅ Contenido HTML del email generado correctamente");
+    return html.toString();
+}
+
+    // ========== CLASE AUXILIAR: DATOS ADICIONALES ==========
+private static class DatosPresupuestoAdicionales {
+    String numeroPresupuesto;
+    String estado;
+    String plazos;
+    String metodoPago;
+    java.time.LocalDate validoHasta;
+    String observaciones;
+}
+
+
+    // ========== MÉTODO NUEVO: OBTENER DATOS ADICIONALES DEL PRESUPUESTO ==========
+private DatosPresupuestoAdicionales obtenerDatosPresupuestoAdicionales(int clienteId) {
+    try (Connection conn = Conexion.conectar()) {
         
-        contenidoHTML.append("</div>");
+        String sql = """
+            SELECT 
+                numero_presupuesto,
+                estado,
+                plazos_pago,
+                metodo_pago,
+                valido_hasta,
+                observaciones
+            FROM presupuestos 
+            WHERE cliente_id = ? 
+            ORDER BY fecha_creacion DESC 
+            LIMIT 1
+            """;
         
-        // Servicios adicionales (si existen)
-        if (datos.extras != null && !datos.extras.isEmpty()) {
-            boolean tieneExtrasSeleccionados = datos.extras.stream().anyMatch(extra -> extra.getCantidad() > 0);
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, clienteId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            DatosPresupuestoAdicionales datos = new DatosPresupuestoAdicionales();
+            datos.numeroPresupuesto = rs.getString("numero_presupuesto");
+            datos.estado = rs.getString("estado");
+            datos.plazos = rs.getString("plazos_pago");
+            datos.metodoPago = rs.getString("metodo_pago");
             
-            if (tieneExtrasSeleccionados) {
-                contenidoHTML.append("<div style=\"background-color: #e8f4fd; padding: 20px; border-radius: 10px; margin: 25px 0; border-left: 4px solid #3498db;\">")
-                            .append("<h3 style=\"color: #2c3e50; margin: 0 0 15px 0;\">✨ Servicios Adicionales</h3>");
-                
-                for (Extra extra : datos.extras) {
-                    if (extra.getCantidad() > 0) {
-                        contenidoHTML.append("<div style=\"margin-bottom: 10px; padding: 10px; background-color: white; border-radius: 5px;\">")
-                                    .append("<strong style=\"color: #667eea;\">• ").append(extra.getNombre()).append("</strong><br>")
-                                    .append("<span style=\"font-size: 14px;\">Cantidad: ").append(extra.getCantidad())
-                                    .append(" | $").append(String.format("%.0f", extra.getPrecio())).append(" c/u")
-                                    .append(" = <strong>$").append(String.format("%.0f", extra.getSubtotal())).append("</strong></span>")
-                                    .append("</div>");
-                    }
-                }
-                
-                contenidoHTML.append("</div>");
+            java.sql.Date validoHastaSQL = rs.getDate("valido_hasta");
+            if (validoHastaSQL != null) {
+                datos.validoHasta = validoHastaSQL.toLocalDate();
             }
+            
+            datos.observaciones = rs.getString("observaciones");
+            return datos;
         }
         
-        // Resumen financiero
-        contenidoHTML.append("<div style=\"background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;\">")
-                    .append("<h3 style=\"color: #2c3e50; margin: 0 0 15px 0; text-align: center;\">💰 Resumen Financiero</h3>")
-                    .append("<table style=\"width: 100%; font-size: 16px;\">")
-                    .append("<tr><td style=\"padding: 5px 0;\">Subtotal:</td><td style=\"text-align: right;\">$").append(String.format("%.0f", datos.subtotal)).append("</td></tr>")
-                    .append("<tr><td style=\"padding: 5px 0;\">IVA (16%):</td><td style=\"text-align: right;\">$").append(String.format("%.0f", datos.iva)).append("</td></tr>")
-                    .append("<tr style=\"border-top: 2px solid #667eea; font-weight: bold; font-size: 20px; color: #667eea;\"><td style=\"padding: 10px 0;\">TOTAL:</td><td style=\"text-align: right;\">$").append(String.format("%.0f", datos.total)).append("</td></tr>")
-                    .append("</table>")
-                    .append("</div>")
-                    
-            // Resto del email (contacto, footer, etc.)
-            .append("<p>📎 <strong>En el archivo adjunto</strong> encontrará todos los detalles específicos de su presupuesto.</p>")
-            
-            .append("<p>Nuestro equipo está listo para hacer realidad su evento. Si tiene alguna pregunta o desea realizar ajustes, estaremos encantados de atenderle.</p>")
-            
-            // Información de contacto
-            .append("<div style=\"background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin: 25px 0; border-left: 4px solid #667eea;\">")
-            .append("<h3 style=\"color: #2c3e50; margin: 0 0 15px 0;\">📞 Contacto Directo</h3>")
-            .append("<p style=\"margin: 5px 0; font-size: 16px;\"><strong>Email:</strong> bienvenido@forgestudio.com.mx</p>")
-            .append("<p style=\"margin: 5px 0; font-size: 16px;\"><strong>Teléfono:</strong> [Agregar tu número]</p>")
-            .append("<p style=\"margin: 15px 0 0 0; color: #667eea; font-weight: bold;\">¡Estamos aquí para ayudarle!</p>")
-            .append("</div>")
-            
-            .append("<p style=\"text-align: center; color: #7f8c8d; margin: 30px 0 20px 0;\">Gracias por confiar en <strong>ForgeStudio</strong> para su evento especial.</p>")
-            
-            .append("<p style=\"text-align: center;\">Saludos cordiales,<br>")
-            .append("<strong style=\"color: #667eea; font-size: 18px;\">Equipo ForgeStudio</strong></p>")
-            .append("</div>")
-            
-            // Footer
-            .append("<div style=\"text-align: center; padding: 20px; color: #7f8c8d; font-size: 12px;\">")
-            .append("<p>Este presupuesto fue generado automáticamente el ")
-            .append(java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' HH:mm")))
-            .append("</p>")
-            .append("<p>© ").append(java.time.Year.now()).append(" ForgeStudio - Todos los derechos reservados</p>")
-            .append("</div>")
-            .append("</div>")
-            .append("</body>")
-            .append("</html>");
-        
-        return contenidoHTML.toString();
+    } catch (SQLException e) {
+        System.err.println("❌ Error al obtener datos adicionales: " + e.getMessage());
     }
+    
+    return null;
+}
 
-    private String crearContenidoEmailBasico(ClienteContrato cliente) {
-        String contenidoHTML = "<html>" +
-            "<body style=\"font-family: Arial, sans-serif; color: #333;\">" +
-                "<div style=\"max-width: 600px; margin: 0 auto; padding: 20px;\">" +
-                    "<h2 style=\"color: #2c3e50; text-align: center;\">🎉 Presupuesto de Evento</h2>" +
-                    
-                    "<p>Estimado/a <strong>" + cliente.getNombreCompleto() + "</strong>,</p>" +
-                    
-                    "<p>Esperamos que se encuentre bien. Nos complace enviarle el presupuesto solicitado para su evento.</p>" +
-                    
-                    "<div style=\"background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;\">" +
-                        "<h3 style=\"color: #2c3e50; margin-top: 0;\">📋 Detalles del Presupuesto:</h3>" +
-                        "<ul style=\"list-style: none; padding: 0;\">" +
-                            "<li><strong>📦 Paquete:</strong> " + cliente.getPaquete() + "</li>" +
-                            "<li><strong>💰 Monto:</strong> " + cliente.getMontoTotal() + "</li>" +
-                            "<li><strong>📅 Fecha:</strong> " + cliente.getFechaContrato() + "</li>" +
-                            "<li><strong>📊 Estado:</strong> " + cliente.getEstado() + "</li>" +
-                        "</ul>" +
-                    "</div>" +
-                    
-                    "<p>En el archivo adjunto encontrará todos los detalles del presupuesto.</p>" +
-                    
-                    "<p>Si tiene alguna pregunta o desea realizar alguna modificación, no dude en contactarnos.</p>" +
-                    
-                    "<div style=\"background-color: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;\">" +
-                        "<p style=\"margin: 0;\"><strong>📞 Contáctanos:</strong></p>" +
-                        "<p style=\"margin: 5px 0;\">Email: " + EMAIL_EMPRESA + "</p>" +
-                    "</div>" +
-                    
-                    "<p>Esperamos poder hacer realidad su evento especial.</p>" +
-                    
-                    "<p>Saludos cordiales,<br>" +
-                    "<strong>" + NOMBRE_EMPRESA + "</strong></p>" +
-                    
-                    "<hr style=\"border: none; border-top: 1px solid #ddd; margin: 20px 0;\">" +
-                    "<p style=\"font-size: 12px; color: #7f8c8d; text-align: center;\">" +
-                        "Este email fue generado automáticamente el " + 
-                        java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) +
-                    "</p>" +
-                "</div>" +
-            "</body>" +
-        "</html>";
-        
-        return contenidoHTML;
-    }
+    // MÉTODOS PARA ENVÍO DE EMAIL 
 
-    // ========== MÉTODOS PARA ENVÍO DE EMAIL ==========
-
-    @FXML 
-    private void enviarEmail() {
-        if (clienteActualmenteSeleccionado != null) {
-            if (!clienteActualmenteSeleccionado.getEmail().equals("Sin email")) {
-                // Primero verificar si existe un PDF o crear uno
-                String rutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-                
-                if (rutaPDF == null) {
-                    // No existe PDF, preguntar si quiere generar uno
-                    mostrarConfirmacion("📧 Enviar Email", 
-                                      "No se encontró un PDF para este cliente.\n\n" +
-                                      "¿Deseas generar el PDF y enviarlo por email?",
-                                      () -> {
-                                          try {
-                                              // Generar PDF primero
-                                              generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                                              // Buscar la nueva ruta del PDF
-                                              String nuevaRutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-                                              if (nuevaRutaPDF != null) {
-                                                  enviarEmailConPDF(clienteActualmenteSeleccionado, nuevaRutaPDF);
-                                              }
-                                          } catch (Exception e) {
-                                              mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
-                                          }
-                                      });
-                } else {
-                    // Ya existe PDF, enviarlo directamente
-                    enviarEmailConPDF(clienteActualmenteSeleccionado, rutaPDF);
-                }
+   @FXML 
+private void enviarEmail() {
+    if (clienteActualmenteSeleccionado != null) {
+        if (!clienteActualmenteSeleccionado.getEmail().equals("Sin email")) {
+            // Primero verificar si existe un PDF o crear uno
+            String rutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+            
+            if (rutaPDF == null) {
+                // No existe PDF, preguntar si quiere generar uno
+                // USAR EL NUEVO MÉTODO CON DOS OPCIONES
+                mostrarConfirmacionDosOpciones("📧 Enviar Email", 
+                                              "No se encontró PDF.\n\n¿Deseas generar y enviar?",
+                                              () -> {
+                                                  try {
+                                                      // Generar PDF primero
+                                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+                                                      // Buscar la nueva ruta del PDF
+                                                      String nuevaRutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+                                                      if (nuevaRutaPDF != null) {
+                                                          enviarEmailConPDF(clienteActualmenteSeleccionado, nuevaRutaPDF);
+                                                      }
+                                                  } catch (Exception e) {
+                                                      mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
+                                                  }
+                                              },
+                                              () -> {
+                                                  // Cancelar - no hacer nada
+                                                  mostrarMensaje("Cancelado", "Envío de email cancelado", "#f39c12");
+                                              },
+                                              "🆕 Generar y Enviar", "✕ Cancelar");
             } else {
-                mostrarMensaje("Sin email", "Este cliente no tiene email registrado", "#f39c12");
+                // Ya existe PDF, enviarlo directamente
+                enviarEmailConPDF(clienteActualmenteSeleccionado, rutaPDF);
             }
         } else {
-            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
+            mostrarMensaje("Sin email", "Este cliente no tiene email registrado", "#f39c12");
         }
+    } else {
+        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
     }
+}
 
     private void enviarEmailConPDF(ClienteContrato cliente, String rutaPDF) {
         try {
@@ -715,13 +940,13 @@ public class ClientesController {
             // Crear contenido del mensaje
             Multipart multipart = new MimeMultipart();
             
-            // Parte 1: Texto del email
+            // Texto del email
             MimeBodyPart textoParte = new MimeBodyPart();
             String contenidoEmail = crearContenidoEmailCompleto(cliente); // ← USAR MÉTODO COMPLETO
             textoParte.setContent(contenidoEmail, "text/html; charset=utf-8");
             multipart.addBodyPart(textoParte);
             
-            // Parte 2: Adjuntar PDF
+            // Adjuntar PDF
             MimeBodyPart adjuntoParte = new MimeBodyPart();
             File archivoPDF = new File(rutaPDF);
             if (archivoPDF.exists()) {
@@ -762,9 +987,8 @@ public class ClientesController {
                 }
             }).start();
             
-        } catch (Exception e) {
+        } catch (IOException | MessagingException e) {
             mostrarMensaje("Error", "Error al preparar email: " + e.getMessage(), "#e74c3c");
-            e.printStackTrace();
         }
     }
 
@@ -789,18 +1013,16 @@ public class ClientesController {
     // ========== MÉTODOS PARA BOTONES DE ACCIÓN ==========
 
     @FXML
-    private void limpiarPresupuestosManual() {
-        mostrarConfirmacion("🧹 Confirmar Limpieza", 
-                           "Se eliminarán automáticamente:\n\n" +
-                           "• Presupuestos con más de 1 mes\n" +
-                           "• Los clientes asociados (sin contratos)\n\n" +
-                           "⚠️ Esta acción NO se puede deshacer.",
-                           () -> {
-                               limpiarPresupuestosVencidos();
-                               cargarDatos();
-                               mostrarMensaje("Éxito", "Presupuestos vencidos eliminados correctamente", "#27ae60");
-                           });
-    }
+private void limpiarPresupuestosManual() {
+    // USAR EL MÉTODO SIMPLE
+    mostrarConfirmacionSimple("🧹 Confirmar Limpieza", 
+                             "Se eliminarán presupuestos con más de 1 mes.\n\n⚠️ Esta acción NO se puede deshacer.",
+                             () -> {
+                                 limpiarPresupuestosVencidos();
+                                 cargarDatos();
+                                 mostrarMensaje("Éxito", "Presupuestos vencidos eliminados correctamente", "#27ae60");
+                             });
+}
 
     @FXML
     private void actualizarDatos() {
@@ -832,76 +1054,395 @@ public class ClientesController {
         }
     }
 
-    @FXML 
-    private void verDetalles() {
-        if (clienteActualmenteSeleccionado != null) {
-            String detalles = "=== DETALLES DEL CLIENTE ===\n\n" +
-                             "👤 Nombre: " + clienteActualmenteSeleccionado.getNombreCompleto() + "\n" +
-                             "📞 Teléfono: " + clienteActualmenteSeleccionado.getTelefono() + "\n" +
-                             "📧 Email: " + clienteActualmenteSeleccionado.getEmail() + "\n\n" +
-                             "=== PRESUPUESTO ===\n\n" +
-                             "📅 Fecha: " + clienteActualmenteSeleccionado.getFechaContrato() + "\n" +
-                             "📦 Paquete: " + clienteActualmenteSeleccionado.getPaquete() + "\n" +
-                             "💰 Monto: " + clienteActualmenteSeleccionado.getMontoTotal() + "\n" +
-                             "📊 Estado: " + clienteActualmenteSeleccionado.getEstado();
-            
-            mostrarMensaje("📋 Detalles del Presupuesto", detalles, "#3498db");
-        } else {
-            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
-        }
-    }
-
-    @FXML 
-    private void verContratoPDF() {
-        if (clienteActualmenteSeleccionado != null) {
-            try {
-                // Primero buscar si ya existe un PDF para este cliente
-                String rutaPDFExistente = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-                
-                if (rutaPDFExistente != null) {
-                    // Ya existe un PDF, preguntarle al usuario qué hacer
-                    mostrarConfirmacion("📄 PDF Existente", 
-                                      "Ya existe un PDF para este cliente.\n\n" +
-                                      "¿Qué deseas hacer?",
-                                      () -> {
-                                          // Abrir PDF existente
-                                          abrirPDF(rutaPDFExistente);
-                                          mostrarMensaje("PDF Abierto", "PDF existente abierto correctamente", "#27ae60");
-                                      },
-                                      () -> {
-                                          // Generar nuevo PDF
-                                          generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                                      },
-                                      "📂 Abrir Existente", "🆕 Generar Nuevo");
-                } else {
-                    // No existe PDF, generar uno nuevo
-                    generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                }
-                
-            } catch (Exception e) {
-                mostrarMensaje("Error", "Error al procesar PDF: " + e.getMessage(), "#e74c3c");
-                e.printStackTrace();
+   // ========== MÉTODO CORREGIDO: VER DETALLES COMPLETOS ==========
+@FXML 
+private void verDetalles() {
+    if (clienteActualmenteSeleccionado != null) {
+        
+        // Obtener datos completos del presupuesto
+        DatosPresupuestoCompleto datosCompletos = obtenerDatosPresupuestoCompleto(clienteActualmenteSeleccionado.getClienteId());
+        
+        StringBuilder detalles = new StringBuilder();
+        
+        // === HEADER ===
+        detalles.append("🎉 DETALLES COMPLETOS DEL PRESUPUESTO\n");
+        detalles.append("=" .repeat(50)).append("\n\n");
+        
+        // === DATOS DEL CLIENTE ===
+        detalles.append("👤 INFORMACIÓN DEL CLIENTE\n");
+        detalles.append("-".repeat(30)).append("\n");
+        detalles.append("Nombre: ").append(clienteActualmenteSeleccionado.getNombreCompleto()).append("\n");
+        detalles.append("Teléfono: ").append(clienteActualmenteSeleccionado.getTelefono()).append("\n");
+        detalles.append("Email: ").append(clienteActualmenteSeleccionado.getEmail()).append("\n\n");
+        
+        // === INFORMACIÓN DEL PRESUPUESTO ===
+        detalles.append("📋 INFORMACIÓN DEL PRESUPUESTO\n");
+        detalles.append("-".repeat(30)).append("\n");
+        detalles.append("Fecha: ").append(clienteActualmenteSeleccionado.getFechaContrato()).append("\n");
+        detalles.append("Estado: ").append(clienteActualmenteSeleccionado.getEstado()).append("\n\n");
+        
+        // === PAQUETE BASE ===
+        detalles.append("📦 PAQUETE SELECCIONADO\n");
+        detalles.append("-".repeat(30)).append("\n");
+        detalles.append("Nombre: ").append(clienteActualmenteSeleccionado.getPaquete()).append("\n");
+        
+        if (datosCompletos != null) {
+            if (datosCompletos.paqueteDescripcion != null && !datosCompletos.paqueteDescripcion.trim().isEmpty()) {
+                detalles.append("Descripción: ").append(datosCompletos.paqueteDescripcion).append("\n");
             }
+            detalles.append("Precio: $").append(String.format("%.0f", datosCompletos.paquetePrecio)).append(" MXN\n\n");
+            
+            // === EXTRAS SELECCIONADOS ===
+            if (datosCompletos.extras != null && !datosCompletos.extras.isEmpty()) {
+                boolean tieneExtrasSeleccionados = datosCompletos.extras.stream().anyMatch(extra -> extra.getCantidad() > 0);
+                
+                if (tieneExtrasSeleccionados) {
+                    detalles.append("✨ SERVICIOS ADICIONALES\n");
+                    detalles.append("-".repeat(30)).append("\n");
+                    
+                    double totalExtras = 0.0;
+                    for (Extra extra : datosCompletos.extras) {
+                        if (extra.getCantidad() > 0) {
+                            double subtotalExtra = extra.getPrecio() * extra.getCantidad();
+                            detalles.append("• ").append(extra.getNombre()).append("\n");
+                            detalles.append("  Cantidad: ").append(extra.getCantidad());
+                            detalles.append(" | Precio unitario: $").append(String.format("%.0f", extra.getPrecio()));
+                            detalles.append(" | Subtotal: $").append(String.format("%.0f", subtotalExtra)).append(" MXN\n");
+                            totalExtras += subtotalExtra;
+                        }
+                    }
+                    detalles.append("\nTotal Extras: $").append(String.format("%.0f", totalExtras)).append(" MXN\n\n");
+                } else {
+                    detalles.append("✨ SERVICIOS ADICIONALES\n");
+                    detalles.append("-".repeat(30)).append("\n");
+                    detalles.append("Sin servicios adicionales seleccionados\n\n");
+                }
+            } else {
+                // Intentar obtener extras desde la tabla presupuestos (campo extras_detalle)
+                String extrasDetalle = obtenerExtrasDetalleDesdeBD(clienteActualmenteSeleccionado.getClienteId());
+                if (extrasDetalle != null && !extrasDetalle.trim().isEmpty() && !extrasDetalle.equals("Sin extras")) {
+                    detalles.append("✨ SERVICIOS ADICIONALES\n");
+                    detalles.append("-".repeat(30)).append("\n");
+                    detalles.append(extrasDetalle).append("\n\n");
+                } else {
+                    detalles.append("✨ SERVICIOS ADICIONALES\n");
+                    detalles.append("-".repeat(30)).append("\n");
+                    detalles.append("Sin servicios adicionales seleccionados\n\n");
+                }
+            }
+            
+            // === RESUMEN FINANCIERO ===
+            detalles.append("💰 RESUMEN FINANCIERO\n");
+            detalles.append("-".repeat(30)).append("\n");
+            
+            if (datosCompletos.subtotal > 0) {
+                detalles.append("Subtotal: $").append(String.format("%.0f", datosCompletos.subtotal)).append(" MXN\n");
+            }
+            
+            if (datosCompletos.iva > 0) {
+                detalles.append("IVA (16%): $").append(String.format("%.0f", datosCompletos.iva)).append(" MXN\n");
+            }
+            
+            detalles.append("TOTAL GENERAL: $").append(String.format("%.0f", datosCompletos.total)).append(" MXN\n\n");
         } else {
-            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
+            // Si no se pueden obtener datos completos, usar información básica
+            detalles.append("💰 MONTO TOTAL: ").append(clienteActualmenteSeleccionado.getMontoTotal()).append(" MXN\n\n");
         }
+        
+        // === INFORMACIÓN ADICIONAL ===
+        detalles.append("ℹ️ INFORMACIÓN ADICIONAL\n");
+        detalles.append("-".repeat(30)).append("\n");
+        detalles.append("• Presupuesto válido por 30 días desde su generación\n");
+        detalles.append("• Para confirmar, se requiere anticipo del 50%\n");
+        detalles.append("• Precios en pesos mexicanos (MXN)\n");
+        
+        // Verificar si tiene PDF disponible
+        boolean tienePDFEnBD = verificarPDFEnBD(clienteActualmenteSeleccionado.getClienteId());
+        String rutaPDFLocal = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+        
+        if (tienePDFEnBD) {
+            detalles.append("• ✅ PDF disponible en base de datos\n");
+        } else if (rutaPDFLocal != null) {
+            detalles.append("• ✅ PDF disponible localmente\n");
+        } else {
+            detalles.append("• ⚠️ PDF no generado aún\n");
+        }
+        
+        detalles.append("\n").append("=" .repeat(50));
+        
+        // Mostrar detalles completos
+        mostrarMensaje("📋 Detalles Completos del Presupuesto", detalles.toString(), "#3498db");
+        
+    } else {
+        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
     }
+}
+
+// ========== MÉTODO AUXILIAR: OBTENER EXTRAS DETALLE DESDE BD ==========
+private String obtenerExtrasDetalleDesdeBD(int clienteId) {
+    try (Connection conn = Conexion.conectar()) {
+        
+        String sql = "SELECT extras_detalle, extras, total_extras FROM presupuestos " +
+                    "WHERE cliente_id = ? ORDER BY fecha_creacion DESC LIMIT 1";
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, clienteId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            String extrasDetalle = rs.getString("extras_detalle");
+            String extras = rs.getString("extras");
+            double totalExtras = rs.getDouble("total_extras");
+            
+            // Priorizar extras_detalle
+            if (extrasDetalle != null && !extrasDetalle.trim().isEmpty() && !extrasDetalle.equals("Sin extras")) {
+                if (totalExtras > 0) {
+                    return extrasDetalle + "\n\nTotal Extras: $" + String.format("%.0f", totalExtras) + " MXN";
+                }
+                return extrasDetalle;
+            }
+            
+            // Si no hay extras_detalle, usar campo extras
+            if (extras != null && !extras.trim().isEmpty() && !extras.equals("Sin extras")) {
+                if (totalExtras > 0) {
+                    return extras + "\n\nTotal Extras: $" + String.format("%.0f", totalExtras) + " MXN";
+                }
+                return extras;
+            }
+            
+            // Si hay total_extras pero no descripción
+            if (totalExtras > 0) {
+                return "Servicios adicionales incluidos\nTotal Extras: $" + String.format("%.0f", totalExtras) + " MXN";
+            }
+        }
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error al obtener extras detalle: " + e.getMessage());
+    }
+    
+    return null;
+}
+    
+    // ========== MÉTODO AUXILIAR: VERIFICAR PDF EN BD ==========
+private boolean verificarPDFEnBD(int clienteId) {
+    try (Connection conn = Conexion.conectar()) {
+        String sql = "SELECT archivo_pdf_contenido FROM presupuestos " +
+                    "WHERE cliente_id = ? AND archivo_pdf_contenido IS NOT NULL " +
+                    "ORDER BY fecha_creacion DESC LIMIT 1";
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, clienteId);
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+            return pdfBytes != null && pdfBytes.length > 0;
+        }
+        
+        return false;
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error verificando PDF en BD: " + e.getMessage());
+        return false;
+    }
+}
 
     @FXML 
-    private void eliminarSeleccionado() {
-        if (clienteActualmenteSeleccionado != null) {
-            mostrarConfirmacion("🗑️ Confirmar Eliminación",
-                               "¿Eliminar el presupuesto de:\n\n" +
-                               "👤 " + clienteActualmenteSeleccionado.getNombreCompleto() + "\n" +
-                               "📦 " + clienteActualmenteSeleccionado.getPaquete() + "\n" +
-                               "💰 " + clienteActualmenteSeleccionado.getMontoTotal() + "\n\n" +
-                               "Si no tiene contratos, también se eliminará el cliente.\n\n" +
-                               "⚠️ Esta acción NO se puede deshacer.",
-                               () -> eliminarPresupuestoCliente(clienteActualmenteSeleccionado));
-        } else {
-            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
+private void verContratoPDF() {
+    if (clienteActualmenteSeleccionado != null) {
+        try {
+            // OPCIÓN 1: Verificar si existe PDF en BD (como BLOB)
+            boolean pdfEnBD = verificarPDFEnBD(clienteActualmenteSeleccionado.getClienteId());
+            
+            if (pdfEnBD) {
+                // PDF existe en BD, preguntar qué hacer
+                mostrarConfirmacion("📄 PDF Disponible", 
+                                  "Este cliente tiene PDF guardado en la base de datos.\n\n" +
+                                  "¿Qué deseas hacer?",
+                                  () -> {
+                                      // Descargar desde BD y abrir
+                                      boolean exito = descargarPDFPresupuestoDesdeBD(
+                                          clienteActualmenteSeleccionado.getClienteId(), 
+                                          "Presupuestos/"
+                                      );
+                                      if (exito) {
+                                          // Buscar el archivo descargado y abrirlo
+                                          String rutaPDFDescargado = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+                                          if (rutaPDFDescargado != null) {
+                                              abrirPDF(rutaPDFDescargado);
+                                              mostrarMensaje("PDF Abierto", "PDF descargado de la base de datos y abierto correctamente", "#27ae60");
+                                          }
+                                      }
+                                  },
+                                  () -> {
+                                      // Generar nuevo PDF
+                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+                                  },
+                                  "📥 Descargar de BD", "🆕 Generar Nuevo");
+                return;
+            }
+            
+            // OPCIÓN 2: Verificar si existe PDF local
+            String rutaPDFExistente = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+            
+            if (rutaPDFExistente != null) {
+                // Ya existe un PDF local, preguntarle al usuario qué hacer
+                mostrarConfirmacion("📄 PDF Local Existente", 
+                                  "Ya existe un PDF local para este cliente.\n\n" +
+                                  "¿Qué deseas hacer?",
+                                  () -> {
+                                      // Abrir PDF existente
+                                      abrirPDF(rutaPDFExistente);
+                                      mostrarMensaje("PDF Abierto", "PDF existente abierto correctamente", "#27ae60");
+                                  },
+                                  () -> {
+                                      // Generar nuevo PDF
+                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+                                  },
+                                  "📂 Abrir Existente", "🆕 Generar Nuevo");
+            } else {
+                // No existe PDF, generar uno nuevo
+                generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+            }
+            
+        } catch (Exception e) {
+            mostrarMensaje("Error", "Error al procesar PDF: " + e.getMessage(), "#e74c3c");
         }
+    } else {
+        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
     }
+}
+
+// ========== MÉTODO 1: CONFIRMACIÓN CON DOS OPCIONES ==========
+private void mostrarConfirmacionDosOpciones(String titulo, String mensaje, Runnable accion1, Runnable accion2, String textoBoton1, String textoBoton2) {
+    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
+        lblTituloMensaje.setText(titulo);
+        lblTituloMensaje.getStyleClass().clear();
+        lblTituloMensaje.getStyleClass().add("titulo-dialogo");
+        
+        contenedorMensajes.getChildren().clear();
+        
+        VBox tarjetaConfirmacion = new VBox();
+        tarjetaConfirmacion.getStyleClass().add("tarjeta-confirmacion");
+
+        Label lblMensaje = new Label(mensaje);
+        lblMensaje.getStyleClass().add("mensaje-dialogo");
+
+        VBox contenedorBotones = new VBox();
+        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
+        
+        Button btn1 = new Button(textoBoton1.length() > 15 ? textoBoton1.substring(0, 15) + "..." : textoBoton1);
+        if (textoBoton1.contains("Descargar")) {
+            btn1.setText("📥 Descargar");
+            btn1.getStyleClass().add("btn-descargar-bd");
+        } else if (textoBoton1.contains("Abrir")) {
+            btn1.setText("📂 Abrir");
+            btn1.getStyleClass().add("btn-abrir-existente");
+        } else {
+            btn1.setText("🆕 Generar");
+            btn1.getStyleClass().add("btn-generar-nuevo");
+        }
+        btn1.setOnAction(e -> {
+            accion1.run();
+            cerrarMensajes();
+        });
+        
+        Button btn2 = new Button(textoBoton2.length() > 15 ? textoBoton2.substring(0, 15) + "..." : textoBoton2);
+        if (textoBoton2.contains("Generar")) {
+            btn2.setText("🆕 Generar");
+            btn2.getStyleClass().add("btn-generar-nuevo");
+        } else {
+            btn2.setText("📂 Abrir");
+            btn2.getStyleClass().add("btn-abrir-existente");
+        }
+        btn2.setOnAction(e -> {
+            accion2.run();
+            cerrarMensajes();
+        });
+        
+        Button btnCancelar = new Button("✕ Cancelar");
+        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
+        btnCancelar.setOnAction(e -> cerrarMensajes());
+        
+        contenedorBotones.getChildren().addAll(btn1, btn2, btnCancelar);
+
+        Separator separador = new Separator();
+        separador.getStyleClass().add("separador-dialogo");
+        
+        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, contenedorBotones);
+        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
+        
+        tarjetaConfirmacion.setMaxHeight(-1);
+        tarjetaConfirmacion.setMaxWidth(300);
+        tarjetaConfirmacion.setPrefWidth(300);
+        
+        panelMensajes.setVisible(true);
+        
+        System.out.println("✅ Confirmación dos opciones mostrada: " + titulo);
+    }
+}
+
+// ========== MÉTODO 2: CONFIRMACIÓN SIMPLE (SÍ/NO) ==========
+private void mostrarConfirmacionSimple(String titulo, String mensaje, Runnable accionConfirmar) {
+    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
+        lblTituloMensaje.setText(titulo);
+        lblTituloMensaje.getStyleClass().clear();
+        lblTituloMensaje.getStyleClass().add("titulo-dialogo-eliminar");
+        
+        contenedorMensajes.getChildren().clear();
+        
+        VBox tarjetaConfirmacion = new VBox();
+        tarjetaConfirmacion.getStyleClass().add("tarjeta-eliminar");
+
+        Label lblMensaje = new Label(mensaje);
+        lblMensaje.getStyleClass().add("mensaje-dialogo");
+
+        HBox botones = new HBox();
+        botones.getStyleClass().add("contenedor-botones-horizontal");
+        
+        Button btnConfirmar = new Button("✓ Confirmar");
+        btnConfirmar.getStyleClass().add("btn-confirmar-dialogo");
+        btnConfirmar.setOnAction(e -> {
+            accionConfirmar.run();
+            cerrarMensajes();
+        });
+        
+        Button btnCancelar = new Button("✕ Cancelar");
+        btnCancelar.getStyleClass().add("btn-cancelar-horizontal");
+        btnCancelar.setOnAction(e -> cerrarMensajes());
+        
+        botones.getChildren().addAll(btnConfirmar, btnCancelar);
+
+        Separator separador = new Separator();
+        separador.getStyleClass().add("separador-dialogo");
+
+        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, botones);
+        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
+        
+        tarjetaConfirmacion.setMaxHeight(-1);
+        tarjetaConfirmacion.setMaxWidth(300);
+        tarjetaConfirmacion.setPrefWidth(300);
+        
+        panelMensajes.setVisible(true);
+        
+        System.out.println("✅ Confirmación simple mostrada: " + titulo);
+    }
+}
+
+    @FXML 
+private void eliminarSeleccionado() {
+    if (clienteActualmenteSeleccionado != null) {
+        // USAR EL MÉTODO SIMPLE
+        mostrarConfirmacionSimple("🗑️ Confirmar Eliminación",
+                                 "¿Eliminar el presupuesto de:\n\n" +
+                                 "👤 " + clienteActualmenteSeleccionado.getNombreCompleto() + "\n" +
+                                 "💰 " + clienteActualmenteSeleccionado.getMontoTotal() + "\n\n" +
+                                 "⚠️ Esta acción NO se puede deshacer.",
+                                 () -> eliminarPresupuestoCliente(clienteActualmenteSeleccionado));
+    } else {
+        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
+    }
+}
 
     private void eliminarPresupuestoCliente(ClienteContrato cliente) {
         try (Connection conn = Conexion.conectar()) {
@@ -939,7 +1480,7 @@ public class ClientesController {
         }
     }
 
-    // ========== MÉTODOS PARA MANEJO DE PDF ==========
+    // MÉTODOS PARA MANEJO DE PDF 
 
     private void guardarRutaPDFEnBD(int clienteId, String rutaCompleta, String nombreArchivo) {
         try (Connection conn = Conexion.conectar()) {
@@ -1026,7 +1567,7 @@ public class ClientesController {
         }
     }
 
-    // ========== MÉTODOS PARA INTERFAZ DE USUARIO ==========
+    // MÉTODOS PARA INTERFAZ DE USUARIO
 
     private void mostrarMensaje(String titulo, String mensaje, String color) {
         if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
@@ -1053,104 +1594,136 @@ public class ClientesController {
         }
     }
 
+   private void mostrarDialogoPDF(ClienteContrato cliente) {
+    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
+        lblTituloMensaje.setText("📄 PDF Disponible");
+        lblTituloMensaje.getStyleClass().clear();
+        lblTituloMensaje.getStyleClass().add("titulo-dialogo-pdf");
+        
+        contenedorMensajes.getChildren().clear();
+        
+        VBox tarjetaPDF = new VBox();
+        tarjetaPDF.getStyleClass().add("tarjeta-pdf");
+
+        Label lblMensaje = new Label("PDF guardado en BD.\n\n¿Qué deseas hacer?");
+        lblMensaje.getStyleClass().add("mensaje-dialogo");
+
+        VBox contenedorBotones = new VBox();
+        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
+        
+        Button btnDescargar = new Button("📥 Descargar de BD");
+        btnDescargar.getStyleClass().add("btn-descargar-bd");
+        btnDescargar.setOnAction(e -> {
+            boolean exito = descargarPDFPresupuestoDesdeBD(cliente.getClienteId(), "Presupuestos/");
+            if (exito) {
+                String rutaPDFDescargado = buscarPDFExistente(cliente.getClienteId());
+                if (rutaPDFDescargado != null) {
+                    abrirPDF(rutaPDFDescargado);
+                    mostrarMensaje("PDF Abierto", "PDF abierto correctamente", "#27ae60");
+                }
+            }
+            cerrarMensajes();
+        });
+        
+        Button btnGenerar = new Button("🆕 Generar Nuevo");
+        btnGenerar.getStyleClass().add("btn-generar-nuevo");
+        btnGenerar.setOnAction(e -> {
+            generarPDFPresupuestoCompleto(cliente);
+            cerrarMensajes();
+        });
+        
+        Button btnCancelar = new Button("✕ Cancelar");
+        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
+        btnCancelar.setOnAction(e -> cerrarMensajes());
+        
+        contenedorBotones.getChildren().addAll(btnDescargar, btnGenerar, btnCancelar);
+
+        Separator separador = new Separator();
+        separador.getStyleClass().add("separador-dialogo");
+
+        tarjetaPDF.getChildren().addAll(lblMensaje, separador, contenedorBotones);
+        contenedorMensajes.getChildren().add(tarjetaPDF);
+        
+        // CONFIGURACIÓN SIMPLIFICADA SIN REGION
+        tarjetaPDF.setMaxHeight(-1);
+        tarjetaPDF.setMaxWidth(300);
+        tarjetaPDF.setPrefWidth(300);
+        
+        panelMensajes.setVisible(true);
+        
+        System.out.println("✅ Diálogo PDF mostrado para: " + cliente.getNombreCompleto());
+    }
+}
+
+
     private void mostrarConfirmacion(String titulo, String mensaje, Runnable accion1, Runnable accion2, String textoBoton1, String textoBoton2) {
-        if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-            lblTituloMensaje.setText(titulo);
-            lblTituloMensaje.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #3498db;");
-            
-            contenedorMensajes.getChildren().clear();
-            
-            VBox tarjetaConfirmacion = new VBox(15);
-            tarjetaConfirmacion.setStyle("-fx-background-color: rgba(255, 255, 255, 0.95); " +
-                                       "-fx-background-radius: 15px; " +
-                                       "-fx-padding: 20px; " +
-                                       "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 8, 0, 0, 3); " +
-                                       "-fx-border-color: #3498db; -fx-border-width: 2px; -fx-border-radius: 15px;");
+    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
+        lblTituloMensaje.setText(titulo);
+        lblTituloMensaje.getStyleClass().clear();
+        lblTituloMensaje.getStyleClass().add("titulo-dialogo");
+        
+        contenedorMensajes.getChildren().clear();
+        
+        VBox tarjetaConfirmacion = new VBox();
+        tarjetaConfirmacion.getStyleClass().add("tarjeta-confirmacion");
 
-            Label lblMensaje = new Label(mensaje);
-            lblMensaje.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50;");
-            lblMensaje.setWrapText(true);
+        Label lblMensaje = new Label(mensaje);
+        lblMensaje.getStyleClass().add("mensaje-dialogo");
 
-            HBox botones = new HBox(15);
-            botones.setAlignment(Pos.CENTER);
-            
-            Button btn1 = new Button(textoBoton1);
-            btn1.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; " +
-                         "-fx-background-radius: 20px; -fx-padding: 10 20; " +
-                         "-fx-font-weight: bold;");
-            btn1.setOnAction(e -> {
-                accion1.run();
-                cerrarMensajes();
-            });
-            
-            Button btn2 = new Button(textoBoton2);
-            btn2.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
-                         "-fx-background-radius: 20px; -fx-padding: 10 20; " +
-                         "-fx-font-weight: bold;");
-            btn2.setOnAction(e -> {
-                accion2.run();
-                cerrarMensajes();
-            });
-            
-            Button btnCancelar = new Button("✕ Cancelar");
-            btnCancelar.setStyle("-fx-background-color: #95a5a6; -fx-text-fill: white; " +
-                                "-fx-background-radius: 20px; -fx-padding: 10 20; " +
-                                "-fx-font-weight: bold;");
-            btnCancelar.setOnAction(e -> cerrarMensajes());
-            
-            botones.getChildren().addAll(btn1, btn2, btnCancelar);
-
-            tarjetaConfirmacion.getChildren().addAll(lblMensaje, new Separator(), botones);
-            contenedorMensajes.getChildren().add(tarjetaConfirmacion);
-            
-            panelMensajes.setVisible(true);
+        VBox contenedorBotones = new VBox();
+        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
+        
+        Button btn1 = new Button(textoBoton1.length() > 15 ? textoBoton1.substring(0, 15) + "..." : textoBoton1);
+        if (textoBoton1.contains("Descargar")) {
+            btn1.setText("📥 Descargar");
+            btn1.getStyleClass().add("btn-descargar-bd");
+        } else if (textoBoton1.contains("Abrir")) {
+            btn1.setText("📂 Abrir");
+            btn1.getStyleClass().add("btn-abrir-existente");
+        } else {
+            btn1.setText("🆕 Generar");
+            btn1.getStyleClass().add("btn-generar-nuevo");
         }
-    }
-
-    private void mostrarConfirmacion(String titulo, String mensaje, Runnable accionConfirmar) {
-        if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-            lblTituloMensaje.setText(titulo);
-            lblTituloMensaje.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #f39c12;");
-            
-            contenedorMensajes.getChildren().clear();
-            
-            VBox tarjetaConfirmacion = new VBox(15);
-            tarjetaConfirmacion.setStyle("-fx-background-color: rgba(255, 255, 255, 0.95); " +
-                                       "-fx-background-radius: 15px; " +
-                                       "-fx-padding: 20px; " +
-                                       "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 8, 0, 0, 3); " +
-                                       "-fx-border-color: #f39c12; -fx-border-width: 2px; -fx-border-radius: 15px;");
-
-            Label lblMensaje = new Label(mensaje);
-            lblMensaje.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50;");
-            lblMensaje.setWrapText(true);
-
-            HBox botones = new HBox(15);
-            botones.setAlignment(Pos.CENTER);
-            
-            Button btnConfirmar = new Button("✓ Confirmar");
-            btnConfirmar.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; " +
-                                 "-fx-background-radius: 20px; -fx-padding: 10 20; " +
-                                 "-fx-font-weight: bold;");
-            btnConfirmar.setOnAction(e -> {
-                accionConfirmar.run();
-                cerrarMensajes();
-            });
-            
-            Button btnCancelar = new Button("✕ Cancelar");
-            btnCancelar.setStyle("-fx-background-color: #95a5a6; -fx-text-fill: white; " +
-                                "-fx-background-radius: 20px; -fx-padding: 10 20; " +
-                                "-fx-font-weight: bold;");
-            btnCancelar.setOnAction(e -> cerrarMensajes());
-            
-            botones.getChildren().addAll(btnConfirmar, btnCancelar);
-
-            tarjetaConfirmacion.getChildren().addAll(lblMensaje, new Separator(), botones);
-            contenedorMensajes.getChildren().add(tarjetaConfirmacion);
-            
-            panelMensajes.setVisible(true);
+        btn1.setOnAction(e -> {
+            accion1.run();
+            cerrarMensajes();
+        });
+        
+        Button btn2 = new Button(textoBoton2.length() > 15 ? textoBoton2.substring(0, 15) + "..." : textoBoton2);
+        if (textoBoton2.contains("Generar")) {
+            btn2.setText("🆕 Generar");
+            btn2.getStyleClass().add("btn-generar-nuevo");
+        } else {
+            btn2.setText("📂 Abrir");
+            btn2.getStyleClass().add("btn-abrir-existente");
         }
+        btn2.setOnAction(e -> {
+            accion2.run();
+            cerrarMensajes();
+        });
+        
+        Button btnCancelar = new Button("✕ Cancelar");
+        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
+        btnCancelar.setOnAction(e -> cerrarMensajes());
+        
+        contenedorBotones.getChildren().addAll(btn1, btn2, btnCancelar);
+
+        Separator separador = new Separator();
+        separador.getStyleClass().add("separador-dialogo");
+        
+        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, contenedorBotones);
+        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
+        
+        // CONFIGURACIÓN SIMPLIFICADA SIN REGION
+        tarjetaConfirmacion.setMaxHeight(-1);
+        tarjetaConfirmacion.setMaxWidth(300);
+        tarjetaConfirmacion.setPrefWidth(300);
+        
+        panelMensajes.setVisible(true);
+        
+        System.out.println("✅ Confirmación mostrada: " + titulo);
     }
+}
 
     @FXML
     private void cerrarMensajes() {
@@ -1159,8 +1732,7 @@ public class ClientesController {
         }
     }
 
-    // ========== CLASE INTERNA PARA DATOS COMPLETOS ==========
-
+    // CLASE INTERNA PARA DATOS COMPLETOS (ya existe en tu código)
     private static class DatosPresupuestoCompleto {
         int presupuestoId;
         java.sql.Date fechaCreacion;
@@ -1172,4 +1744,5 @@ public class ClientesController {
         double total;
         List<Extra> extras;
     }
+
 }

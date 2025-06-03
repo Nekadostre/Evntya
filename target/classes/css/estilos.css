@@ -1022,4 +1022,309 @@
     -fx-scale-x: 1.1;
     -fx-scale-y: 1.1;
 }
+/* ========== DIÁLOGOS Y CONFIRMACIONES - VERSIÓN COMPACTA ========== */
 
+/* Panel de mensajes principal */
+.panel-mensajes {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+    -fx-alignment: center;
+}
+
+/* Tarjeta de confirmación general */
+.tarjeta-confirmacion {
+    -fx-background-color: rgba(255, 255, 255, 0.98);
+    -fx-background-radius: 15px;
+    -fx-padding: 25px 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 12, 0, 0, 5);
+    -fx-border-color: #3498db;
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-pref-width: 280px;
+    -fx-max-width: 280px;
+    -fx-min-width: 280px;
+    -fx-spacing: 18px;
+    -fx-alignment: center;
+}
+
+/* Contenedor de mensajes - SIN SCROLL */
+.contenedor-mensajes {
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+    -fx-spacing: 0;
+}
+
+/* Tarjeta específica para PDF */
+.tarjeta-pdf {
+    -fx-background-color: rgba(255, 255, 255, 0.98);
+    -fx-background-radius: 15px;
+    -fx-padding: 25px 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 12, 0, 0, 5);
+    -fx-border-color: #2980b9;
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-pref-width: 280px;
+    -fx-max-width: 280px;
+    -fx-min-width: 280px;
+    -fx-spacing: 18px;
+    -fx-alignment: center;
+}
+
+/* Tarjeta para eliminación */
+.tarjeta-eliminar {
+    -fx-background-color: rgba(255, 255, 255, 0.98);
+    -fx-background-radius: 15px;
+    -fx-padding: 25px 20px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 12, 0, 0, 5);
+    -fx-border-color: #e74c3c;
+    -fx-border-width: 2px;
+    -fx-border-radius: 15px;
+    -fx-pref-width: 280px;
+    -fx-max-width: 280px;
+    -fx-min-width: 280px;
+    -fx-spacing: 18px;
+    -fx-alignment: center;
+}
+
+/* Títulos de los diálogos */
+.titulo-dialogo {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-text-fill: #2c3e50;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-max-width: 240px;
+}
+
+.titulo-dialogo-pdf {
+    -fx-font-weight: bold;
+    -fx-font-size: 16px;
+    -fx-text-fill: #2980b9;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-max-width: 240px;
+}
+
+.titulo-dialogo-eliminar {
+    -fx-font-weight: bold;
+    -fx-font-size: 15px;
+    -fx-text-fill: #e74c3c;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-max-width: 240px;
+}
+/* Mensaje del diálogo */
+.mensaje-dialogo {
+    -fx-font-size: 12px;
+    -fx-text-fill: #2c3e50;
+    -fx-line-spacing: 2px;
+    -fx-text-alignment: center;
+    -fx-alignment: center;
+    -fx-wrap-text: true;
+    -fx-max-width: 240px;
+    -fx-pref-width: 240px;
+}
+
+/* Contenedor de botones verticales */
+.contenedor-botones-vertical {
+    -fx-spacing: 12px;
+    -fx-alignment: center;
+    -fx-max-width: 240px;
+    -fx-pref-width: 240px;
+}
+
+/* Contenedor de botones horizontales */
+.contenedor-botones-horizontal {
+    -fx-spacing: 15px;
+    -fx-alignment: center;
+    -fx-max-width: 240px;
+    -fx-pref-width: 240px;
+}
+
+/* Separador para diálogos */
+.separador-dialogo {
+    -fx-background-color: #bdc3c7;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+}
+
+/* ========== BOTONES DE DIÁLOGO COMPACTOS ========== */
+
+/* Botón principal de descarga */
+.btn-descargar-bd,
+.btn-generar-nuevo,
+.btn-abrir-existente,
+.btn-cancelar-dialogo {
+    -fx-text-fill: white;
+    -fx-background-radius: 18px;
+    -fx-padding: 10 20;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-pref-width: 200px;
+    -fx-max-width: 200px;
+    -fx-min-width: 200px;
+    -fx-pref-height: 38px;
+    -fx-max-height: 38px;
+    -fx-min-height: 38px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 4, 0, 0, 2);
+}
+
+.btn-descargar-bd {
+    -fx-background-color: linear-gradient(to bottom, #27ae60 0%, #229954 100%);
+}
+
+.btn-descargar-bd:hover {
+    -fx-background-color: linear-gradient(to bottom, #2ecc71 0%, #27ae60 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* Botón generar nuevo */
+.btn-generar-nuevo {
+    -fx-background-color: linear-gradient(to bottom, #3498db 0%, #2980b9 100%);
+    -fx-text-fill: white;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    /* TAMAÑO FIJO */
+    -fx-pref-width: 180px;
+    -fx-max-width: 180px;
+    -fx-min-width: 180px;
+    -fx-pref-height: 35px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.2), 4, 0, 0, 2);
+}
+
+.btn-generar-nuevo:hover {
+    -fx-background-color: linear-gradient(to bottom, #5dade2 0%, #3498db 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* Botón abrir existente */
+.btn-abrir-existente {
+    -fx-background-color: linear-gradient(to bottom, #f39c12 0%, #e67e22 100%);
+    -fx-text-fill: white;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-pref-width: 180px;
+    -fx-max-width: 180px;
+    -fx-min-width: 180px;
+    -fx-pref-height: 35px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(243, 156, 18, 0.2), 4, 0, 0, 2);
+}
+
+.btn-abrir-existente:hover {
+    -fx-background-color: linear-gradient(to bottom, #f1c40f 0%, #f39c12 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* Botón cancelar */
+.btn-cancelar-dialogo {
+    -fx-background-color: linear-gradient(to bottom, #95a5a6 0%, #7f8c8d 100%);
+    -fx-text-fill: white;
+    -fx-background-radius: 18px;
+    -fx-padding: 8 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    -fx-pref-width: 180px;
+    -fx-max-width: 180px;
+    -fx-min-width: 180px;
+    -fx-pref-height: 35px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(149, 165, 166, 0.2), 4, 0, 0, 2);
+}
+
+.btn-cancelar-dialogo:hover {
+    -fx-background-color: linear-gradient(to bottom, #bdc3c7 0%, #95a5a6 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+    -fx-effect: dropshadow(three-pass-box, rgba(149, 165, 166, 0.3), 6, 0, 0, 3);
+}
+
+.btn-confirmar-dialogo {
+    -fx-background-color: linear-gradient(to bottom, #e74c3c 0%, #c0392b 100%);
+    -fx-text-fill: white;
+    -fx-background-radius: 16px;
+    -fx-padding: 8 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    /* TAMAÑO FIJO */
+    -fx-pref-width: 100px;
+    -fx-max-width: 100px;
+    -fx-min-width: 100px;
+    -fx-pref-height: 32px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.2), 4, 0, 0, 2);
+}
+
+.btn-confirmar-dialogo:hover {
+    -fx-background-color: linear-gradient(to bottom, #ec7063 0%, #e74c3c 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* Botón cancelar horizontal */
+.btn-confirmar-dialogo,
+.btn-cancelar-horizontal {
+    -fx-text-fill: white;
+    -fx-background-radius: 16px;
+    -fx-padding: 8 16;
+    -fx-font-weight: bold;
+    -fx-font-size: 11px;
+    /* TAMAÑO EXACTAMENTE IGUAL */
+    -fx-pref-width: 100px;
+    -fx-max-width: 100px;
+    -fx-min-width: 100px;
+    -fx-pref-height: 32px;
+    -fx-max-height: 32px;
+    -fx-min-height: 32px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 4, 0, 0, 2);
+}
+
+.btn-cancelar-horizontal:hover {
+    -fx-background-color: linear-gradient(to bottom, #bdc3c7 0%, #95a5a6 100%);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+}
+
+/* ========== OCULTAR SCROLLBARS GLOBALMENTE ========== */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-pane .content {
+    -fx-background-color: transparent;
+}
+
+/* Ocultar barras de scroll completamente */
+.scroll-pane .scroll-bar:vertical {
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+}
+
+.scroll-pane .scroll-bar:horizontal {
+    -fx-opacity: 0;
+    -fx-pref-height: 0;
+}
+
+.scroll-pane .corner {
+    -fx-opacity: 0;
+}

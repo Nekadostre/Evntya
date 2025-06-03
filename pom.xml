@@ -14,10 +14,9 @@
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <javafx.version>17.0.6</javafx.version>
+        <javafx.version>21.0.2</javafx.version>
         <main.class>controladores.App</main.class>
+        <maven.compiler.release>17</maven.compiler.release>
     </properties>
     
     <dependencies>
@@ -69,17 +68,21 @@
             <artifactId>itextpdf</artifactId>
             <version>5.5.13.3</version>
         </dependency>
+        
         <dependency>
             <groupId>uk.bl.wa.discovery</groupId>
             <artifactId>digipres-tika</artifactId>
             <version>3.3.0</version>
             <type>jar</type>
         </dependency>
+        
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
             <version>1.6.2</version>
         </dependency>
+        
+        <!-- ELIMINADA: Dependencia conflictiva de jfxcore javafx-graphics 18-ea+1 -->
     </dependencies>
     
     <build>

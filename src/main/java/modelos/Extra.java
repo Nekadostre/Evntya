@@ -1,3 +1,5 @@
+// ========== VERIFICA QUE TU CLASE Extra.java TENGA ESTOS CONSTRUCTORES ==========
+
 package modelos;
 
 public class Extra {
@@ -5,91 +7,62 @@ public class Extra {
     private String nombre;
     private double precio;
     private int cantidad;
-
-    // Constructor completo
+    
+    // Constructor CON ID (necesario para cargar desde BD)
     public Extra(int id, String nombre, double precio, int cantidad) {
         this.id = id;
         this.nombre = nombre;
         this.precio = precio;
         this.cantidad = cantidad;
     }
-
-    // Constructor sin ID (para cuando se crea desde presupuesto)
+    
+    // Constructor SIN ID (para crear nuevos extras)
     public Extra(String nombre, double precio, int cantidad) {
-        this.id = 0;
+        this.id = 0; // Sin ID
         this.nombre = nombre;
         this.precio = precio;
         this.cantidad = cantidad;
     }
-
-    // Constructor básico
-    public Extra(String nombre, double precio) {
-        this.id = 0;
-        this.nombre = nombre;
-        this.precio = precio;
-        this.cantidad = 0;
-    }
-
-    // Getters
+    
+    // Getters y setters
     public int getId() {
         return id;
     }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public double getPrecio() {
-        return precio;
-    }
-
-    public int getCantidad() {
-        return cantidad;
-    }
-
-    // Setters
+    
     public void setId(int id) {
         this.id = id;
     }
-
+    
+    public String getNombre() {
+        return nombre;
+    }
+    
     public void setNombre(String nombre) {
         this.nombre = nombre;
     }
-
+    
+    public double getPrecio() {
+        return precio;
+    }
+    
     public void setPrecio(double precio) {
         this.precio = precio;
     }
-
+    
+    public int getCantidad() {
+        return cantidad;
+    }
+    
     public void setCantidad(int cantidad) {
         this.cantidad = cantidad;
     }
-
-    // Métodos útiles
+    
     public double getSubtotal() {
         return precio * cantidad;
     }
-
-    public boolean isSeleccionado() {
-        return cantidad > 0;
-    }
-
+    
     @Override
     public String toString() {
-        return nombre + " - $" + String.format("%.2f", precio) + 
-               (cantidad > 0 ? " (x" + cantidad + ")" : "");
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        
-        Extra extra = (Extra) obj;
-        return id == extra.id && nombre.equals(extra.nombre);
-    }
-
-    @Override
-    public int hashCode() {
-        return nombre.hashCode() + (id * 31);
+        return String.format("%s x%d - $%.2f", nombre, cantidad, getSubtotal());
     }
 }

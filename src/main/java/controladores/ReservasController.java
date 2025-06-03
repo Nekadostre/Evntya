@@ -56,11 +56,13 @@ public class ReservasController {
         String extras;
         double total;
         String direccion;
+        int contratoId;
         
-        // Constructor completo (13 parámetros)
+        // Constructor completo (14 parámetros)
         ReservaCalendario(LocalDate fecha, String cliente, String festejado, String horario, 
                          String estado, String telefono, String email, String paquete, 
-                         String metodoPago, String plazos, String extras, double total, String direccion) {
+                         String metodoPago, String plazos, String extras, double total, 
+                         String direccion, int contratoId) {
             this.fecha = fecha;
             this.cliente = cliente;
             this.festejado = festejado;
@@ -74,6 +76,7 @@ public class ReservasController {
             this.extras = extras;
             this.total = total;
             this.direccion = direccion;
+            this.contratoId = contratoId;
         }
         
         // Constructor básico (5 parámetros)
@@ -92,6 +95,7 @@ public class ReservasController {
             this.extras = "Sin extras";
             this.total = 0.0;
             this.direccion = "No especificada";
+            this.contratoId = 0;
         }
     }
 
@@ -104,8 +108,6 @@ public class ReservasController {
 
     private void limpiarReservasVencidas() {
         try (Connection conn = Conexion.conectar()) {
-            System.out.println("🧹 Limpiando contratos vencidos...");
-            
             String sqlVerificar = "SELECT COUNT(*) as total FROM contratos WHERE fecha_evento < DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
             PreparedStatement stmtVerificar = conn.prepareStatement(sqlVerificar);
             ResultSet rsVerificar = stmtVerificar.executeQuery();
@@ -119,14 +121,11 @@ public class ReservasController {
                 // Solo cambiar estado en lugar de eliminar
                 String sqlActualizar = "UPDATE contratos SET estado = 'finalizado' WHERE fecha_evento < DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND estado != 'finalizado'";
                 PreparedStatement stmtActualizar = conn.prepareStatement(sqlActualizar);
-                int actualizados = stmtActualizar.executeUpdate();
-                System.out.println("🗑️ Marcados como finalizados: " + actualizados + " contratos vencidos");
-            } else {
-                System.out.println("✅ No hay contratos vencidos");
+                stmtActualizar.executeUpdate();
             }
             
         } catch (SQLException e) {
-            System.err.println("❌ Error al actualizar contratos: " + e.getMessage());
+            System.err.println("Error al actualizar contratos: " + e.getMessage());
         }
     }
 
@@ -204,7 +203,7 @@ public class ReservasController {
                 }
             }
             
-            // === CREAR TRIÁNGULOS CON CLICK INDEPENDIENTE ===
+            // CREAR TRIÁNGULOS CON CLICK INDEPENDIENTE 
             
             // TRIÁNGULO INFERIOR IZQUIERDO = MATUTINO (clickeable)
             Polygon trianguloMatutino = new Polygon();
@@ -243,7 +242,7 @@ public class ReservasController {
                 }
             }
 
-            // === SEPARAR RESERVAS POR HORARIO ===
+            // SEPARAR RESERVAS POR HORARIO 
             List<ReservaCalendario> matutino = new ArrayList<>();
             List<ReservaCalendario> vespertino = new ArrayList<>();
 
@@ -255,7 +254,7 @@ public class ReservasController {
                 }
             }
 
-            // === CLICK INDEPENDIENTE PARA CADA TRIÁNGULO ===
+            // CLICK INDEPENDIENTE PARA CADA TRIÁNGULO
 
             // CLICK EN TRIÁNGULO MATUTINO (inferior izquierdo)
             trianguloMatutino.setOnMouseClicked(e -> {
@@ -296,7 +295,7 @@ public class ReservasController {
                 trianguloVespertino.setOpacity(1.0);
             });
 
-            // === LÍNEA DIAGONAL ===
+            // LÍNEA DIAGONAL 
             Line lineaDiagonal = new Line();
             lineaDiagonal.setStartX(0);
             lineaDiagonal.setStartY(0);
@@ -307,7 +306,7 @@ public class ReservasController {
             lineaDiagonal.setOpacity(0.6);
             lineaDiagonal.setMouseTransparent(true); // No interfiere con los clicks
 
-            // === CONTENEDORES PARA INDICADORES ===
+            // CONTENEDORES PARA INDICADORES 
             VBox contenedorMatutino = new VBox();
             contenedorMatutino.setAlignment(Pos.BOTTOM_LEFT);
             contenedorMatutino.setPrefWidth(100);
@@ -356,7 +355,7 @@ public class ReservasController {
                 contenedorVespertino.getChildren().add(indicadoresVespertino);
             }
 
-            // === NÚMERO DEL DÍA ===
+            // NÚMERO DEL DÍA
             Label numeroDia = new Label(String.valueOf(dia));
             numeroDia.getStyleClass().add("numero-dia");
             numeroDia.setMouseTransparent(true); // No interfiere con los clicks
@@ -376,7 +375,7 @@ public class ReservasController {
 
             StackPane.setAlignment(numeroDia, Pos.CENTER);
 
-            // === ENSAMBLAR CELDA ===
+            // ENSAMBLAR CELDA
             contenedorDia.getChildren().addAll(
                 trianguloMatutino, 
                 trianguloVespertino, 
@@ -394,177 +393,246 @@ public class ReservasController {
                 fila++;
             }
         }
-        
-        System.out.println("📅 Calendario actualizado: " + mesActual + " - " + reservasDelMes.size() + " reservas");
     }
 
     private void cargarReservasDelMes() {
-    reservasDelMes.clear();
-    
-    try (Connection conn = Conexion.conectar()) {
-        System.out.println("🔍 Buscando eventos para: " + mesActual.getYear() + "-" + mesActual.getMonthValue());
-        
-        String sqlUnificada = "SELECT " +
-                    "CONCAT(c.nombre, ' ', c.apellido_paterno, " +
-                    "CASE WHEN c.apellido_materno IS NOT NULL AND c.apellido_materno != '' " +
-                    "THEN CONCAT(' ', c.apellido_materno) ELSE '' END) as nombre_cliente, " +
-                    "COALESCE(c.telefono, 'No registrado') as telefono, " +
-                    "COALESCE(c.correo, 'No registrado') as correo, " +
-                    "COALESCE(con.nombre_festejado, 'Evento de reserva') as nombre_festejado, " +
-                    "con.fecha_evento as fecha, " +
-                    "COALESCE(con.horario, 'matutino') as horario, " +
-                    "COALESCE(con.total, 0) as total, " +
-                    "COALESCE(con.metodo_pago, 'No especificado') as metodo_pago, " +
-                    // CAMBIO: En lugar de archivo_ruta, usar una dirección genérica o campo específico
-                    "'Dirección del evento a confirmar' as direccion, " +
-                    "COALESCE(p.nombre, 'Paquete estándar') as paquete_nombre, " +
-                    "'Contrato' as extras, " +
-                    "'Pago único' as plazos, " +
-                    "CASE " +
-                    "WHEN con.fecha_evento > CURDATE() THEN 'Próximo' " +
-                    "WHEN con.fecha_evento = CURDATE() THEN 'HOY' " +
-                    "WHEN con.fecha_evento < CURDATE() THEN 'Realizado' " +
-                    "END as estado_evento, " +
-                    "'contrato' as tipo_origen " +
-                    "FROM contratos con " +
-                    "INNER JOIN clientes c ON con.cliente_id = c.id " +
-                    "LEFT JOIN paquetes p ON con.paquete_id = p.id " +
-                    "WHERE YEAR(con.fecha_evento) = ? AND MONTH(con.fecha_evento) = ? " +
-                    "AND con.estado IN ('firmado', 'cancelado') " +
-                    
-                    "UNION ALL " +
-                    
-                    "SELECT " +
-                    "CONCAT(c.nombre, ' ', c.apellido_paterno, " +
-                    "CASE WHEN c.apellido_materno IS NOT NULL AND c.apellido_materno != '' " +
-                    "THEN CONCAT(' ', c.apellido_materno) ELSE '' END) as nombre_cliente, " +
-                    "COALESCE(c.telefono, 'No registrado') as telefono, " +
-                    "COALESCE(c.correo, 'No registrado') as correo, " +
-                    "'Evento de reserva' as nombre_festejado, " +
-                    "r.fecha as fecha, " +
-                    "COALESCE(r.horario, 'matutino') as horario, " +
-                    "COALESCE(r.total, 0) as total, " +
-                    "COALESCE(r.metodo_pago, 'No especificado') as metodo_pago, " +
-                    "'Dirección por confirmar' as direccion, " +
-                    "COALESCE(p.nombre, 'Paquete estándar') as paquete_nombre, " +
-                    "'Reserva' as extras, " +
-                    "'Pago único' as plazos, " +
-                    "CASE " +
-                    "WHEN r.fecha > CURDATE() THEN 'Próximo' " +
-                    "WHEN r.fecha = CURDATE() THEN 'HOY' " +
-                    "WHEN r.fecha < CURDATE() THEN 'Realizado' " +
-                    "END as estado_evento, " +
-                    "'reserva' as tipo_origen " +
-                    "FROM reservas r " +
-                    "INNER JOIN clientes c ON r.cliente_id = c.id " +
-                    "LEFT JOIN paquetes p ON r.paquete_id = p.id " +
-                    "WHERE YEAR(r.fecha) = ? AND MONTH(r.fecha) = ? " +
-                    "AND r.estado IN ('pagado', 'confirmado') " +
-                    "AND NOT EXISTS (" +
-                    "   SELECT 1 FROM contratos con2 " +
-                    "   WHERE con2.cliente_id = r.cliente_id " +
-                    "   AND con2.fecha_evento = r.fecha " +
-                    "   AND con2.estado IN ('firmado', 'cancelado')" +
-                    ") " +
-                    
-                    "ORDER BY fecha ASC, horario ASC";
-        
-        PreparedStatement stmt = conn.prepareStatement(sqlUnificada);
-        stmt.setInt(1, mesActual.getYear());
-        stmt.setInt(2, mesActual.getMonthValue());
-        stmt.setInt(3, mesActual.getYear());
-        stmt.setInt(4, mesActual.getMonthValue());
-        ResultSet rs = stmt.executeQuery();
-        
-        int contador = 0;
-        while (rs.next()) {
-            try {
-                LocalDate fecha = rs.getDate("fecha").toLocalDate();
-                String cliente = rs.getString("nombre_cliente");
-                String telefono = rs.getString("telefono");
-                String email = rs.getString("correo");
-                String festejado = rs.getString("nombre_festejado");
-                String horario = rs.getString("horario");
-                String estado = rs.getString("estado_evento");
-                String paquete = rs.getString("paquete_nombre");
-                String metodoPago = rs.getString("metodo_pago");
-                String plazos = rs.getString("plazos");
-                String extras = rs.getString("extras");
-                double total = rs.getDouble("total");
-                String direccion = rs.getString("direccion");
-                String tipoOrigen = rs.getString("tipo_origen");
-                
-                reservasDelMes.add(new ReservaCalendario(fecha, cliente, festejado, horario, estado, 
-                                                       telefono, email, paquete, metodoPago, plazos, extras, total, direccion));
-                contador++;
-                
-                System.out.println("📅 " + tipoOrigen.toUpperCase() + " encontrado: " + fecha + " - " + cliente + " - " + festejado + " ($" + total + ")");
-                
-            } catch (Exception e) {
-                System.err.println("⚠️ Error procesando evento: " + e.getMessage());
-            }
-        }
-        
-        System.out.println("✅ Total eventos cargados (sin duplicados): " + contador);
-        
-    } catch (SQLException e) {
-        System.err.println("❌ Error al cargar eventos: " + e.getMessage());
-        e.printStackTrace();
+        reservasDelMes.clear();
         
         try (Connection conn = Conexion.conectar()) {
-            cargarReservasBasicas(conn);
-        } catch (SQLException e2) {
-            System.err.println("❌ Error en consulta de respaldo: " + e2.getMessage());
+            String sqlSimple = """
+                SELECT 
+                    con.id as contrato_id,
+                    con.fecha_evento,
+                    con.horario,
+                    con.nombre_festejado,
+                    con.total,
+                    con.metodo_pago,
+                    con.estado,
+                    con.cliente_id,
+                    con.paquete_id
+                FROM contratos con
+                WHERE YEAR(con.fecha_evento) = ? 
+                AND MONTH(con.fecha_evento) = ?
+                ORDER BY con.fecha_evento ASC
+                """;
+            
+            PreparedStatement stmtSimple = conn.prepareStatement(sqlSimple);
+            stmtSimple.setInt(1, mesActual.getYear());
+            stmtSimple.setInt(2, mesActual.getMonthValue());
+            ResultSet rsSimple = stmtSimple.executeQuery();
+            
+            while (rsSimple.next()) {
+                int contratoId = rsSimple.getInt("contrato_id");
+                LocalDate fecha = rsSimple.getDate("fecha_evento").toLocalDate();
+                String horario = rsSimple.getString("horario");
+                String festejado = rsSimple.getString("nombre_festejado");
+                double total = rsSimple.getDouble("total");
+                String metodoPago = rsSimple.getString("metodo_pago");
+                String estado = rsSimple.getString("estado");
+                int clienteId = rsSimple.getInt("cliente_id");
+                int paqueteId = rsSimple.getInt("paquete_id");
+                
+                // BUSCAR DATOS DEL CLIENTE POR SEPARADO
+                String nombreCliente = "Cliente desconocido";
+                String telefonoCliente = "No registrado";
+                String emailCliente = "No registrado";
+                
+                String sqlCliente = "SELECT nombre, apellido_paterno, apellido_materno, telefono, correo FROM clientes WHERE id = ?";
+                PreparedStatement stmtCliente = conn.prepareStatement(sqlCliente);
+                stmtCliente.setInt(1, clienteId);
+                ResultSet rsCliente = stmtCliente.executeQuery();
+                
+                if (rsCliente.next()) {
+                    String nombre = rsCliente.getString("nombre");
+                    String apellidoP = rsCliente.getString("apellido_paterno");
+                    String apellidoM = rsCliente.getString("apellido_materno");
+                    String telefono = rsCliente.getString("telefono");
+                    String email = rsCliente.getString("correo");
+                    
+                    StringBuilder nombreCompleto = new StringBuilder();
+                    if (nombre != null && !nombre.trim().isEmpty()) {
+                        nombreCompleto.append(nombre.trim());
+                    }
+                    if (apellidoP != null && !apellidoP.trim().isEmpty()) {
+                        if (nombreCompleto.length() > 0) nombreCompleto.append(" ");
+                        nombreCompleto.append(apellidoP.trim());
+                    }
+                    if (apellidoM != null && !apellidoM.trim().isEmpty()) {
+                        if (nombreCompleto.length() > 0) nombreCompleto.append(" ");
+                        nombreCompleto.append(apellidoM.trim());
+                    }
+                    
+                    nombreCliente = nombreCompleto.toString().isEmpty() ? "Cliente sin nombre" : nombreCompleto.toString();
+                    telefonoCliente = (telefono != null && !telefono.trim().isEmpty()) ? telefono.trim() : "No registrado";
+                    emailCliente = (email != null && !email.trim().isEmpty()) ? email.trim() : "No registrado";
+                }
+                
+                // BUSCAR DATOS DEL PAQUETE POR SEPARADO
+                String nombrePaquete = "Paquete estándar";
+                String descripcionPaquete = "";
+                
+                if (paqueteId > 0) {
+                    String sqlPaquete = "SELECT nombre, descripcion FROM paquetes WHERE id = ?";
+                    PreparedStatement stmtPaquete = conn.prepareStatement(sqlPaquete);
+                    stmtPaquete.setInt(1, paqueteId);
+                    ResultSet rsPaquete = stmtPaquete.executeQuery();
+                    
+                    if (rsPaquete.next()) {
+                        String nomPaq = rsPaquete.getString("nombre");
+                        String descPaq = rsPaquete.getString("descripcion");
+                        
+                        nombrePaquete = (nomPaq != null && !nomPaq.trim().isEmpty()) ? nomPaq.trim() : "Paquete estándar";
+                        descripcionPaquete = (descPaq != null && !descPaq.trim().isEmpty()) ? descPaq.trim() : "";
+                    }
+                }
+                
+                // CONSTRUIR PAQUETE COMPLETO
+                String paqueteCompleto = nombrePaquete;
+                if (!descripcionPaquete.isEmpty()) {
+                    paqueteCompleto += " - " + descripcionPaquete;
+                }
+                
+                // BUSCAR EXTRAS Y PLAZOS
+                String extras = obtenerExtrasDeContrato(conn, clienteId);
+                String plazos = obtenerPlazosDeContrato(conn, clienteId);
+                
+                // DETERMINAR ESTADO
+                String estadoEvento;
+                if (fecha.equals(LocalDate.now())) {
+                    estadoEvento = "HOY";
+                } else if (fecha.isAfter(LocalDate.now())) {
+                    estadoEvento = "Próximo";
+                } else {
+                    estadoEvento = "Realizado";
+                }
+                
+                // LIMPIAR DATOS ANTES DE CREAR LA RESERVA
+                String horarioFinal = (horario != null && !horario.trim().isEmpty()) ? horario.trim() : "matutino";
+                String festejadoFinal = (festejado != null && !festejado.trim().isEmpty()) ? festejado.trim() : "Evento";
+                String metodoPagoFinal = (metodoPago != null && !metodoPago.trim().isEmpty()) ? metodoPago.trim() : "No especificado";
+                
+                // CREAR RESERVA CON DATOS COMPLETOS
+                ReservaCalendario reserva = new ReservaCalendario(
+                    fecha,
+                    nombreCliente,
+                    festejadoFinal,
+                    horarioFinal,
+                    estadoEvento,
+                    telefonoCliente,
+                    emailCliente,
+                    paqueteCompleto,
+                    metodoPagoFinal,
+                    plazos,
+                    extras,
+                    total,
+                    "Dirección por definir",
+                    contratoId
+                );
+                
+                reservasDelMes.add(reserva);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error al cargar eventos: " + e.getMessage());
         }
     }
-}
-   
-    private void cargarReservasBasicas(Connection conn) throws SQLException {
-        System.out.println("🔄 Cargando datos básicos como respaldo...");
-        
-        // Primero intentar contratos básicos
-        String sqlBasica = "SELECT " +
-                    "CONCAT(c.nombre, ' ', COALESCE(c.apellido_paterno, ''), " +
-                    "CASE WHEN c.apellido_materno IS NOT NULL AND c.apellido_materno != '' " +
-                    "THEN CONCAT(' ', c.apellido_materno) ELSE '' END) as nombre_cliente, " +
-                    "COALESCE(con.nombre_festejado, 'Sin especificar') as nombre_festejado, " +
-                    "con.fecha_evento as fecha, " +
-                    "COALESCE(con.horario, 'matutino') as horario, " +
-                    "CASE " +
-                    "WHEN con.fecha_evento > CURDATE() THEN 'Próximo' " +
-                    "WHEN con.fecha_evento = CURDATE() THEN 'HOY' " +
-                    "ELSE 'Realizado' " +
-                    "END as estado_evento " +
-                    "FROM contratos con " +
-                    "INNER JOIN clientes c ON con.cliente_id = c.id " +
-                    "WHERE YEAR(con.fecha_evento) = ? AND MONTH(con.fecha_evento) = ? " +
-                    "ORDER BY con.fecha_evento ASC";
-        
-        PreparedStatement stmt = conn.prepareStatement(sqlBasica);
-        stmt.setInt(1, mesActual.getYear());
-        stmt.setInt(2, mesActual.getMonthValue());
-        ResultSet rs = stmt.executeQuery();
-        
-        int contador = 0;
-        while (rs.next()) {
-            try {
-                LocalDate fecha = rs.getDate("fecha").toLocalDate();
-                String cliente = rs.getString("nombre_cliente");
-                String festejado = rs.getString("nombre_festejado");
-                String horario = rs.getString("horario");
-                String estado = rs.getString("estado_evento");
+
+    // MÉTODO LIMPIO PARA OBTENER EXTRAS
+    private String obtenerExtrasDeContrato(Connection conn, int clienteId) {
+        try {
+            // Buscar en la tabla presupuestos
+            String sqlPresupuesto = """
+                SELECT extras_detalle 
+                FROM presupuestos 
+                WHERE cliente_id = ? 
+                ORDER BY fecha_creacion DESC 
+                LIMIT 1
+                """;
+            
+            PreparedStatement stmtPresupuesto = conn.prepareStatement(sqlPresupuesto);
+            stmtPresupuesto.setInt(1, clienteId);
+            ResultSet rsPresupuesto = stmtPresupuesto.executeQuery();
+            
+            if (rsPresupuesto.next()) {
+                String extrasDetalle = rsPresupuesto.getString("extras_detalle");
                 
-                reservasDelMes.add(new ReservaCalendario(fecha, cliente, festejado, horario, estado));
-                contador++;
-                
-                System.out.println("📅 Datos básicos: " + fecha + " - " + cliente + " - " + festejado);
-                
-            } catch (Exception e) {
-                System.err.println("⚠️ Error en datos básicos: " + e.getMessage());
+                if (extrasDetalle != null && !extrasDetalle.trim().isEmpty() && 
+                    !extrasDetalle.equals("Sin extras") && !extrasDetalle.equals("NULL")) {
+                    return procesarExtras(extrasDetalle);
+                }
             }
+            
+        } catch (SQLException e) {
+            // Error silencioso
         }
         
-        System.out.println("✅ Respaldo cargado: " + contador + " eventos básicos");
+        return "Sin extras";
+    }
+
+    // MÉTODO LIMPIO PARA OBTENER PLAZOS
+    private String obtenerPlazosDeContrato(Connection conn, int clienteId) {
+        try {
+            String sqlPresupuesto = """
+                SELECT plazos_pago 
+                FROM presupuestos 
+                WHERE cliente_id = ? 
+                ORDER BY fecha_creacion DESC 
+                LIMIT 1
+                """;
+            
+            PreparedStatement stmtPresupuesto = conn.prepareStatement(sqlPresupuesto);
+            stmtPresupuesto.setInt(1, clienteId);
+            ResultSet rsPresupuesto = stmtPresupuesto.executeQuery();
+            
+            if (rsPresupuesto.next()) {
+                String plazos = rsPresupuesto.getString("plazos_pago");
+                
+                if (plazos != null && !plazos.trim().isEmpty()) {
+                    return plazos.trim();
+                }
+            }
+            
+        } catch (SQLException e) {
+            // Error silencioso - la columna plazos_pago no existe
+        }
+        
+        return "Pago único";
+    }
+
+    // MÉTODO PARA PROCESAR Y FORMATEAR EXTRAS
+    private String procesarExtras(String extras) {
+        if (extras == null || extras.trim().isEmpty() || 
+            extras.equals("Sin extras especificados") || 
+            extras.equals("Reserva sin extras especificados") ||
+            extras.equals("Sin extras")) {
+            return "Sin extras seleccionados";
+        }
+        
+        try {
+            // Si el string contiene el formato "Nombre xCantidad ($Precio)"
+            if (extras.contains(" x") && extras.contains("($")) {
+                // Formato: "Arco de globos x3 ($1500.00); Horas extra x3 ($2400.00)"
+                String[] partesExtras = extras.split(";");
+                StringBuilder extrasFormateados = new StringBuilder();
+                
+                for (String parte : partesExtras) {
+                    parte = parte.trim();
+                    if (!parte.isEmpty()) {
+                        if (extrasFormateados.length() > 0) {
+                            extrasFormateados.append("\n");
+                        }
+                        extrasFormateados.append("• ").append(parte);
+                    }
+                }
+                
+                return extrasFormateados.toString();
+            } else {
+                // Si es texto simple, solo agregamos viñetas
+                return "• " + extras;
+            }
+        } catch (Exception e) {
+            return extras; // Devolver original si hay error
+        }
     }
 
     private boolean esHorarioMatutino(String horario) {
@@ -683,7 +751,7 @@ public class ReservasController {
                                  "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 8, 0, 0, 3); " +
                                  "-fx-border-color: #e9ecef; -fx-border-width: 1px; -fx-border-radius: 15px;");
         
-        // === HEADER CON NÚMERO Y ESTADO ===
+        // HEADER CON NÚMERO Y ESTADO
         HBox header = new HBox(15);
         header.setAlignment(Pos.CENTER_LEFT);
         
@@ -717,7 +785,7 @@ public class ReservasController {
         tituloCliente.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #2c3e50;");
         
         Label lblCliente = new Label("Nombre: " + reserva.cliente);
-        lblCliente.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+        lblCliente.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50; -fx-font-weight: bold;");
         
         Label lblTelefono = new Label("📞 Teléfono: " + (reserva.telefono != null ? reserva.telefono : "No registrado"));
         lblTelefono.setStyle("-fx-font-size: 13px; -fx-text-fill: #2c3e50;");
@@ -755,9 +823,17 @@ public class ReservasController {
         
         Label lblPaquete = new Label("Paquete: " + reserva.paquete);
         lblPaquete.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50; -fx-font-weight: bold;");
+        lblPaquete.setWrapText(true);
         
-        Label lblExtras = new Label("✨ Extras: " + reserva.extras);
-        lblExtras.setStyle("-fx-font-size: 13px; -fx-text-fill: #2c3e50;");
+        Label lblExtras;
+        if (reserva.extras != null && !reserva.extras.equals("Sin extras especificados") && 
+            !reserva.extras.equals("Sin extras") && !reserva.extras.equals("Sin extras seleccionados")) {
+            lblExtras = new Label("✨ Extras:\n" + reserva.extras);
+            lblExtras.setStyle("-fx-font-size: 13px; -fx-text-fill: #e67e22; -fx-font-weight: bold;");
+        } else {
+            lblExtras = new Label("✨ Extras: " + reserva.extras);
+            lblExtras.setStyle("-fx-font-size: 13px; -fx-text-fill: #95a5a6; -fx-font-style: italic;");
+        }
         lblExtras.setWrapText(true);
         
         seccionPaquete.getChildren().addAll(tituloPaquete, lblPaquete, lblExtras);
@@ -774,13 +850,33 @@ public class ReservasController {
         
         Label lblPlazos = new Label("Plazos: " + (reserva.plazos != null ? reserva.plazos : "No especificado"));
         lblPlazos.setStyle("-fx-font-size: 13px; -fx-text-fill: #2c3e50;");
+        lblPlazos.setWrapText(true);
         
         Label lblTotalFinal = new Label(String.format("💰 TOTAL: $%.2f MXN", reserva.total));
         lblTotalFinal.setStyle("-fx-font-size: 16px; -fx-text-fill: #27ae60; -fx-font-weight: bold;");
         
         seccionPago.getChildren().addAll(tituloPago, lblMetodoPago, lblPlazos, lblTotalFinal);
         
-        // === ENSAMBLAR TARJETA COMPLETA ===
+        // === BOTÓN DE CONTRATO (OPCIONAL) ===
+        if (reserva.contratoId > 0) {
+            Button btnVerContrato = new Button("📄 Ver Contrato #" + reserva.contratoId);
+            btnVerContrato.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; " +
+                                   "-fx-background-radius: 25px; -fx-padding: 10 20; " +
+                                   "-fx-font-weight: bold; -fx-font-size: 13px; " +
+                                   "-fx-cursor: hand;");
+            btnVerContrato.setOnAction(e -> {
+                // Aquí puedes agregar la lógica para abrir el contrato
+                mostrarAlerta("Información", "Función para ver contrato #" + reserva.contratoId + " próximamente");
+            });
+            
+            HBox contenedorBoton = new HBox();
+            contenedorBoton.setAlignment(Pos.CENTER);
+            contenedorBoton.getChildren().add(btnVerContrato);
+            
+            tarjetaPrincipal.getChildren().add(contenedorBoton);
+        }
+        
+        // ENSAMBLAR TARJETA COMPLETA
         tarjetaPrincipal.getChildren().addAll(
             header, 
             new Separator(),
@@ -803,11 +899,9 @@ public class ReservasController {
     @FXML
     private void accionRegresar() {
         try {
-            System.out.println("🔙 Regresando al panel principal...");
-            // Cambiar por tu clase principal correcta
             App.setRoot("PanelPrincipal");
         } catch (Exception e) {
-            System.err.println("❌ Error al regresar al panel principal: " + e.getMessage());
+            System.err.println("Error al regresar al panel principal: " + e.getMessage());
             mostrarAlerta("Error", "No se pudo regresar al panel principal: " + e.getMessage());
         }
     }

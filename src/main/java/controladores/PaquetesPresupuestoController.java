@@ -19,7 +19,7 @@ import javafx.util.Duration;
 import modelos.SesionTemporal;
 
 public class PaquetesPresupuestoController implements Initializable {
-    private static final boolean DEBUG_MODE = false; // Cambia a true solo cuando necesites debug
+    private static final boolean DEBUG_MODE = false; 
     
     private void debug(String mensaje) {
         if (DEBUG_MODE) {
@@ -684,7 +684,7 @@ private void irAVistaPrevia(ActionEvent event) {
             List<modelos.Extra> extrasParaGuardar = new ArrayList<>();
             for (int i = 0; i < extras.length; i++) {
                 if (extras[i] != null && extras[i].cantidad > 0) {
-                    modelos.Extra extraObj = new modelos.Extra(extras[i].nombre, extras[i].precio);
+                    modelos.Extra extraObj = new modelos.Extra(extras[i].nombre, extras[i].precio, 1);
                     extraObj.setCantidad(extras[i].cantidad);
                     extrasParaGuardar.add(extraObj);
                     debug("🎁 Extra agregado: " + extras[i].nombre + " x" + extras[i].cantidad);
