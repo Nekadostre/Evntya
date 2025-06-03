@@ -32,6 +32,12 @@ public class SesionTemporal {
     private String formaPagoPresupuesto;
     private List<Extra> extrasSeleccionados = new ArrayList<>();
     
+    // ========== NUEVOS CAMPOS PARA INFORMACIÓN COMPLETA DEL PRESUPUESTO ==========
+    private String numeroPresupuesto;
+    private LocalDate fechaPresupuesto;
+    private LocalDate validoHasta;
+    private String estadoPresupuesto;
+    
     private SesionTemporal() {
         // Constructor privado para Singleton
     }
@@ -44,18 +50,18 @@ public class SesionTemporal {
     }
     
     public boolean validarDatosCompletos() {
-    boolean clienteOK = hayClienteSeleccionado();
-    boolean paqueteOK = hayPaqueteSeleccionado();
-    boolean horarioOK = horarioPresupuesto != null && !horarioPresupuesto.trim().isEmpty();
-    
-    System.out.println("=== VALIDACIÓN DE SESIÓN ===");
-    System.out.println("Cliente OK: " + clienteOK + " (" + getClienteNombreCompleto() + ")");
-    System.out.println("Paquete OK: " + paqueteOK + " (" + getPaqueteNombre() + ")");
-    System.out.println("Horario OK: " + horarioOK + " (" + horarioPresupuesto + ")");
-    System.out.println("============================");
-    
-    return clienteOK && paqueteOK && horarioOK;
-}
+        boolean clienteOK = hayClienteSeleccionado();
+        boolean paqueteOK = hayPaqueteSeleccionado();
+        boolean horarioOK = horarioPresupuesto != null && !horarioPresupuesto.trim().isEmpty();
+        
+        System.out.println("=== VALIDACIÓN DE SESIÓN ===");
+        System.out.println("Cliente OK: " + clienteOK + " (" + getClienteNombreCompleto() + ")");
+        System.out.println("Paquete OK: " + paqueteOK + " (" + getPaqueteNombre() + ")");
+        System.out.println("Horario OK: " + horarioOK + " (" + horarioPresupuesto + ")");
+        System.out.println("============================");
+        
+        return clienteOK && paqueteOK && horarioOK;
+    }
     
     // ========== MÉTODOS PARA USUARIO LOGUEADO ========== 
     
@@ -199,15 +205,59 @@ public class SesionTemporal {
     }
     
     public String getHorarioPresupuesto() {
-        return horarioPresupuesto;
+        return horarioPresupuesto != null ? horarioPresupuesto : "No especificado";
     }
     
     public String getPlazosPresupuesto() {
-        return plazosPresupuesto;
+        return plazosPresupuesto != null ? plazosPresupuesto : "No especificado";
     }
     
     public String getFormaPagoPresupuesto() {
-        return formaPagoPresupuesto;
+        return formaPagoPresupuesto != null ? formaPagoPresupuesto : "No especificado";
+    }
+    
+    // ========== NUEVOS MÉTODOS PARA INFORMACIÓN COMPLETA DEL PRESUPUESTO ==========
+    
+    public void setNumeroPresupuesto(String numeroPresupuesto) {
+        this.numeroPresupuesto = numeroPresupuesto;
+    }
+    
+    public String getNumeroPresupuesto() {
+        return numeroPresupuesto != null ? numeroPresupuesto : "No asignado";
+    }
+    
+    public void setFechaPresupuesto(LocalDate fechaPresupuesto) {
+        this.fechaPresupuesto = fechaPresupuesto;
+    }
+    
+    public LocalDate getFechaPresupuesto() {
+        return fechaPresupuesto;
+    }
+    
+    public void setValidoHasta(LocalDate validoHasta) {
+        this.validoHasta = validoHasta;
+    }
+    
+    public LocalDate getValidoHasta() {
+        return validoHasta;
+    }
+    
+    public void setEstadoPresupuesto(String estadoPresupuesto) {
+        this.estadoPresupuesto = estadoPresupuesto;
+    }
+    
+    public String getEstadoPresupuesto() {
+        return estadoPresupuesto != null ? estadoPresupuesto : "Pendiente";
+    }
+    
+    public boolean isPresupuestoVencido() {
+        if (validoHasta == null) return false;
+        return LocalDate.now().isAfter(validoHasta);
+    }
+    
+    public long getDiasRestantesValidez() {
+        if (validoHasta == null) return 0;
+        return java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), validoHasta);
     }
     
     // ========== MÉTODOS PARA EXTRAS ========== 
@@ -278,6 +328,12 @@ public class SesionTemporal {
         this.formaPagoPresupuesto = null;
         this.extrasSeleccionados.clear();
         
+        // Limpiar nuevos campos
+        this.numeroPresupuesto = null;
+        this.fechaPresupuesto = null;
+        this.validoHasta = null;
+        this.estadoPresupuesto = null;
+        
         System.out.println("🔄 Sesión reiniciada (manteniendo usuario logueado)");
     }
     
@@ -301,6 +357,8 @@ public class SesionTemporal {
         System.out.println("Paquete: " + getPaqueteNombre() + " ($" + getPaquetePrecio() + ")");
         System.out.println("Fecha evento: " + getFechaEvento());
         System.out.println("Horario evento: " + getHorarioEvento());
+        System.out.println("Número presupuesto: " + getNumeroPresupuesto());
+        System.out.println("Estado presupuesto: " + getEstadoPresupuesto());
         System.out.println("Total extras: $" + getTotalExtras());
         System.out.println("Total general: $" + getTotalGeneral());
         System.out.println("=======================================");

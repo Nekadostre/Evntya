@@ -17,6 +17,7 @@ controladores\ClientesController.class
 modelos\ClienteConContrato.class
 modelos\Extra.class
 controladores\Encriptador.class
+controladores\ClientesController$DatosPresupuestoAdicionales.class
 controladores\App.class
 controladores\ClientesController$1.class
 controladores\ReservasController.class

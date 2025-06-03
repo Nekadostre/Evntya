@@ -6,109 +6,211 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.geometry.Insets?>
 
-<AnchorPane prefHeight="600.0" prefWidth="800.0" 
-           xmlns="http://javafx.com/javafx/21" 
+<AnchorPane xmlns="http://javafx.com/javafx/21" 
            xmlns:fx="http://javafx.com/fxml/1" 
            fx:controller="controladores.VistaContratoController"
            styleClass="root">
            
    <children>
-      <Button layoutX="20.0" layoutY="20.0" mnemonicParsing="false" 
-              onAction="#regresar" text="Regresar" 
-              styleClass="btn-moderno, btn-regresar" />
-      
-      <VBox layoutX="50.0" layoutY="70.0" prefWidth="700.0" spacing="20.0" 
-            styleClass="contenedor-contrato">
-         <children>
-            <Label text="VISTA PREVIA CONTRATO" styleClass="titulo-contrato" />
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
+      <!-- BorderPane principal que se expande por toda la pantalla -->
+      <BorderPane AnchorPane.topAnchor="0.0" 
+                  AnchorPane.bottomAnchor="0.0" 
+                  AnchorPane.leftAnchor="0.0" 
+                  AnchorPane.rightAnchor="0.0"
+                  styleClass="fondo-principal">
+         
+         <!-- Header con botón regresar -->
+         <top>
+            <HBox styleClass="barra-navegacion" spacing="20.0">
+               <padding>
+                  <Insets top="20.0" bottom="20.0" left="30.0" right="30.0" />
+               </padding>
                <children>
-                  <Label text="Fecha del contrato:" styleClass="label-contrato" />
-                  <Label fx:id="lblFechaContrato" text="-" styleClass="texto-bienvenida" />
+                  <Button mnemonicParsing="false" 
+                          onAction="#regresar" 
+                          text="← Regresar" 
+                          styleClass="btn-moderno, btn-regresar" />
                </children>
             </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
+         </top>
+         
+         <!-- Contenido principal centrado -->
+         <center>
+            <VBox styleClass="contenedor-contrato" 
+                  spacing="25.0" 
+                  alignment="CENTER"
+                  maxWidth="800.0">
+               <padding>
+                  <Insets top="40.0" bottom="40.0" left="50.0" right="50.0" />
+               </padding>
                <children>
-                  <Label text="Cliente:" styleClass="label-contrato" />
-                  <Label fx:id="lblNombre" text="-" styleClass="texto-bienvenida" />
+                  <!-- Título principal -->
+                  <Label text="VISTA PREVIA CONTRATO" 
+                         styleClass="titulo-contrato" />
+                  
+                  <!-- Fecha del contrato -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Fecha del contrato:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblFechaContrato" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Cliente -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Cliente:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblNombre" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Festejado -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Festejado:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <TextField fx:id="txtFestejado" 
+                                  onAction="#nomFestejado" 
+                                  styleClass="campo-festejado"
+                                  promptText="Ingrese el nombre del festejado"
+                                  prefWidth="300.0" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Fecha del evento -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Fecha del evento:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblFechaEvento" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Horario -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Horario:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblHorario" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Paquete -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Paquete:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblPaquete" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Forma de pago -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Forma de pago:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblPago" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Plazos -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Plazos:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblPlazos" 
+                               text="-" 
+                               styleClass="texto-bienvenida" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Extras -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER_LEFT">
+                     <children>
+                        <Label text="Extras:" 
+                               styleClass="label-contrato" 
+                               minWidth="180.0" />
+                        <Label fx:id="lblExtras" 
+                               text="-" 
+                               styleClass="texto-bienvenida" 
+                               wrapText="true"
+                               maxWidth="400.0" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Separador visual -->
+                  <VBox styleClass="separador-dialogo" prefHeight="2.0" maxHeight="2.0">
+                     <VBox.margin>
+                        <Insets top="15.0" bottom="15.0" />
+                     </VBox.margin>
+                  </VBox>
+                  
+                  <!-- Total -->
+                  <HBox spacing="15.0" styleClass="hbox-espaciado" alignment="CENTER">
+                     <children>
+                        <Label text="TOTAL: $" 
+                               styleClass="etiqueta-total-contrato" />
+                        <Label fx:id="lblTotal" 
+                               text="0.00" 
+                               styleClass="etiqueta-total-contrato" />
+                        <Label text="MXN" 
+                               styleClass="etiqueta-total-contrato" />
+                     </children>
+                  </HBox>
+                  
+                  <!-- Botones de acción -->
+                  <HBox spacing="20.0" 
+                        styleClass="hbox-espaciado" 
+                        alignment="CENTER">
+                     <VBox.margin>
+                        <Insets top="30.0" />
+                     </VBox.margin>
+                     <children>
+                        <Button mnemonicParsing="false" 
+                                onAction="#imprimirContrato" 
+                                text="📄 Guardar Contrato" 
+                                styleClass="btn-moderno, btn-imprimir"
+                                prefWidth="160.0" />
+                        <Button mnemonicParsing="false" 
+                                onAction="#sendtomail" 
+                                text="📧 Enviar por Correo" 
+                                styleClass="btn-moderno, btn-correo"
+                                prefWidth="160.0" />
+                        <Button mnemonicParsing="false" 
+                                onAction="#exit" 
+                                text="🚪 Salir" 
+                                styleClass="btn-moderno, btn-salir"
+                                prefWidth="120.0" />
+                     </children>
+                  </HBox>
                </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Festejado:" styleClass="label-contrato" />
-                  <TextField fx:id="txtFestejado" onAction="#nomFestejado" 
-                            styleClass="campo-festejado" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Fecha del evento:" styleClass="label-contrato" />
-                  <Label fx:id="lblFechaEvento" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Horario:" styleClass="label-contrato" />
-                  <Label fx:id="lblHorario" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Paquete:" styleClass="label-contrato" />
-                  <Label fx:id="lblPaquete" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Forma de pago:" styleClass="label-contrato" />
-                  <Label fx:id="lblPago" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Plazos:" styleClass="label-contrato" />
-                  <Label fx:id="lblPlazos" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="Extras:" styleClass="label-contrato" />
-                  <Label fx:id="lblExtras" text="-" styleClass="texto-bienvenida" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="10.0" styleClass="hbox-espaciado">
-               <children>
-                  <Label text="TOTAL: $" styleClass="etiqueta-total-contrato" />
-                  <Label fx:id="lblTotal" text="0.00" styleClass="etiqueta-total-contrato" />
-                  <Label text="MXN" styleClass="etiqueta-total-contrato" />
-               </children>
-            </HBox>
-            
-            <HBox spacing="15.0" styleClass="hbox-espaciado">
-               <children>
-                  <Button mnemonicParsing="false" onAction="#imprimirContrato" 
-                          text="Imprimir Contrato" 
-                          styleClass="btn-moderno, btn-imprimir" />
-                  <Button mnemonicParsing="false" onAction="#sendtomail" 
-                          text="Enviar por Correo" 
-                          styleClass="btn-moderno, btn-correo" />
-                  <Button mnemonicParsing="false" onAction="#exit" 
-                          text="Salir" 
-                          styleClass="btn-moderno, btn-salir" />
-               </children>
-            </HBox>
-         </children>
-      </VBox>
+            </VBox>
+         </center>
+      </BorderPane>
    </children>
 </AnchorPane>
