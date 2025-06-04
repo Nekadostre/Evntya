@@ -7,7 +7,8 @@ import modelos.SesionTemporal;
 import java.io.IOException;
 
 public class PanelPrincipalController {
-    private static final boolean DEBUG_MODE = false;
+    private static final boolean DEBUG_MODE = true;
+    
     private void debug(String mensaje) {
         if (DEBUG_MODE) {
             System.out.println(mensaje);
@@ -15,6 +16,7 @@ public class PanelPrincipalController {
     }
 
     @FXML private Label lblNombreUsuario;
+    
     @FXML
     public void initialize() {
         cargarDatosUsuario();
@@ -35,38 +37,37 @@ public class PanelPrincipalController {
     }
 
     @FXML
-    private void abrirClientes() 
-    {
+    private void abrirClientes() {
         try {
             App.setRoot("Clientes");
+            debug("📋 Navegando a Clientes");
         } catch (IOException e) {
             System.err.println("❌ Error al abrir Clientes: " + e.getMessage());
         }
     }
 
     @FXML
-    private void abrirEventos() 
-    {
+    private void abrirEventos() {
         try {
             App.setRoot("Eventos");
+            debug("🎂 Navegando a Eventos");
         } catch (IOException e) {
             System.err.println("❌ Error al abrir Eventos: " + e.getMessage());
         }
     }
 
     @FXML
-    private void abrirReservas() 
-    {
+    private void abrirReservas() {
         try {
             App.setRoot("Reservas");
+            debug("📅 Navegando a Reservas");
         } catch (IOException e) {
             System.err.println("❌ Error al abrir Reservas: " + e.getMessage());
         }
     }
 
     @FXML
-    private void cerrarSesion() 
-    {
+    private void cerrarSesion() {
         try {
             // Limpiar completamente la sesión (incluyendo usuario)
             SesionTemporal.getInstancia().logout();

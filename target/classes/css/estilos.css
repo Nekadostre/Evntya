@@ -8,12 +8,31 @@
     -fx-gray-color: #95a5a6;
 }
 
-/* Configuración de la fuente Walter */
+/* ========== CONFIGURACIÓN DE FUENTE WALTER ========== */
+
 @font-face {
     font-family: 'Walter';
-    src: url('../fonts/walter.ttf');
+    src: url('../fonts/Walter.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
 }
 
+@font-face {
+    font-family: 'walter';
+    src: url('../fonts/Walter.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+/* Rutas alternativas por si no funciona la primera */
+@font-face {
+    font-family: 'Walter-Alt';
+    src: url('/fonts/Walter.ttf') format('truetype'),
+         url('fonts/Walter.ttf') format('truetype'),
+         url('./fonts/Walter.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
 /* ========== ESTILOS GENERALES ========== */
 .root {
     -fx-background-color: transparent;
@@ -1327,4 +1346,199 @@
 
 .scroll-pane .corner {
     -fx-opacity: 0;
+}
+/* ========== PANEL PRINCIPAL FULLSCREEN ========== */
+
+/* Header superior */
+.header-top {
+    -fx-padding: 20;
+}
+
+/* Contenedor principal fullscreen */
+.contenedor-principal-fullscreen {
+    -fx-spacing: 60;
+    -fx-padding: 40;
+    -fx-alignment: center;
+}
+
+/* Header con logo y título */
+.header-logo-titulo {
+    -fx-spacing: 30;
+    -fx-alignment: center;
+}
+
+/* Logo del castillo grande */
+.logo-castillo-grande {
+    -fx-fit-height: 120;
+    -fx-fit-width: 120;
+    -fx-pick-on-bounds: true;
+    -fx-preserve-ratio: true;
+}
+
+/* Contenedor del título multicolor */
+.contenedor-titulo-multicolor {
+    -fx-spacing: 10;
+    -fx-alignment: center;
+}
+
+/* Espacio entre palabras más grande */
+.espacio-palabras {
+    -fx-pref-width: 50;
+}
+
+/* Letras del título CON FUENTE WALTER */
+.contenedor-titulo-multicolor .letra-titulo {
+    -fx-font-family: "Walter", "walter", "Walter-Alt", "Impact", "Arial Black", "Segoe UI Black", Arial, sans-serif !important;
+    -fx-font-size: 90px !important;
+    -fx-font-weight: bold !important;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.6), 10, 0, 5, 5) !important;
+}
+
+/* Colores MUY ESPECÍFICOS - FORZAR APLICACIÓN */
+.contenedor-titulo-multicolor .letra-roja {
+    -fx-text-fill: #ff1744 !important;
+}
+
+.contenedor-titulo-multicolor .letra-naranja {
+    -fx-text-fill: #ff6d00 !important;
+}
+
+.contenedor-titulo-multicolor .letra-amarilla {
+    -fx-text-fill: #ffd600 !important;
+}
+
+.contenedor-titulo-multicolor .letra-verde {
+    -fx-text-fill: #00c853 !important;
+}
+
+.contenedor-titulo-multicolor .letra-azul {
+    -fx-text-fill: #2979ff !important;
+}
+
+.contenedor-titulo-multicolor .letra-morada {
+    -fx-text-fill: #d500f9 !important;
+}
+
+.contenedor-titulo-multicolor .letra-rosa {
+    -fx-text-fill: #ff4081 !important;
+}
+
+.contenedor-titulo-multicolor .letra-roja-oscura {
+    -fx-text-fill: #dd2c00 !important;
+}
+
+.contenedor-titulo-multicolor .letra-marron {
+    -fx-text-fill: #bf360c !important;
+}
+
+.contenedor-titulo-multicolor .letra-gris {
+    -fx-text-fill: #455a64 !important;
+}
+
+/* Contenedor de botones fullscreen */
+.contenedor-botones-fullscreen {
+    -fx-spacing: 80;
+    -fx-alignment: center;
+}
+
+/* Contenedor individual de cada botón */
+.contenedor-boton-individual {
+    -fx-spacing: 20;
+    -fx-alignment: center;
+}
+
+/* Botones principales fullscreen */
+.btn-principal-fullscreen {
+    -fx-min-width: 120px;
+    -fx-min-height: 120px;
+    -fx-background-radius: 25;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.2), 8, 0, 0, 4);
+}
+
+.btn-clientes-fullscreen {
+    -fx-background-color: #3498db;
+}
+
+.btn-clientes-fullscreen:hover {
+    -fx-background-color: #5dade2;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.4), 12, 0, 0, 6);
+}
+
+.btn-eventos-fullscreen {
+    -fx-background-color: #e74c3c;
+}
+
+.btn-eventos-fullscreen:hover {
+    -fx-background-color: #ec7063;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.4), 12, 0, 0, 6);
+}
+
+.btn-reservas-fullscreen {
+    -fx-background-color: #27ae60;
+}
+
+.btn-reservas-fullscreen:hover {
+    -fx-background-color: #58d68d;
+    -fx-scale-x: 1.05;
+    -fx-scale-y: 1.05;
+    -fx-effect: dropshadow(three-pass-box, rgba(39, 174, 96, 0.4), 12, 0, 0, 6);
+}
+
+/* Iconos de botones fullscreen con mejor calidad */
+.icono-boton-fullscreen {
+    -fx-fit-height: 64;
+    -fx-fit-width: 64;
+    -fx-pick-on-bounds: true;
+    -fx-preserve-ratio: true;
+    -fx-smooth: true;
+}
+
+/* Texto de botones fullscreen */
+.texto-boton-fullscreen {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2c3e50;
+}
+
+/* Contenedor de bienvenida fullscreen */
+.contenedor-bienvenida-fullscreen {
+    -fx-spacing: 20;
+    -fx-padding: 30;
+    -fx-alignment: center;
+}
+
+/* Texto de bienvenida fullscreen */
+.texto-bienvenido-fullscreen {
+    -fx-font-size: 36px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #e91e63;
+}
+
+/* Texto empleado fullscreen */
+.texto-empleado-fullscreen {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+/* Texto pregunta fullscreen */
+.texto-pregunta-fullscreen {
+    -fx-font-size: 18px;
+    -fx-text-fill: #7f8c8d;
+}
+
+/* Footer fullscreen */
+.footer-fullscreen {
+    -fx-padding: 20;
+}
+
+/* Texto footer fullscreen */
+.texto-footer-fullscreen {
+    -fx-font-size: 14px;
+    -fx-text-fill: #95a5a6;
 }
