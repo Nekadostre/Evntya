@@ -34,12 +34,13 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>shaded</shadedClassifierName>
               <transformers>
                 <transformer>
                   <mainClass>${main.class}</mainClass>
                 </transformer>
               </transformers>
-              <finalName>Eventya-completo</finalName>
               <filters>
                 <filter>
                   <artifact>*:*</artifact>
@@ -47,6 +48,7 @@
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -59,29 +61,22 @@
         <artifactId>jpackage-maven-plugin</artifactId>
         <version>1.6.0</version>
         <configuration>
-          <name>Eventya</name>
+          <name>SegundoCastillo</name>
           <appVersion>1.0.0</appVersion>
-          <vendor>Tu Empresa</vendor>
+          <vendor>Segundo Castillo</vendor>
           <destination>target/installer</destination>
           <input>target</input>
-          <mainJar>Eventya-completo.jar</mainJar>
+          <mainJar>Eventya-shaded.jar</mainJar>
           <mainClass>${main.class}</mainClass>
           <type>EXE</type>
           <winShortcut>true</winShortcut>
           <winMenu>true</winMenu>
           <winDirChooser>true</winDirChooser>
+          <winUpgradeUuid>12345678-1234-1234-1234-123456789012</winUpgradeUuid>
         </configuration>
       </plugin>
     </plugins>
   </build>
-  <dependencies>
-    <dependency>
-      <groupId>mysql</groupId>
-      <artifactId>mysql-connector-java</artifactId>
-      <version>8.0.33</version>
-      <scope>compile</scope>
-    </dependency>
-  </dependencies>
   <properties>
     <maven.compiler.release>17</maven.compiler.release>
     <main.class>controladores.App</main.class>

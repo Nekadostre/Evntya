@@ -73,47 +73,71 @@ public class App extends Application {
      * Método principal para cambiar vistas con validación de sesión
      */
     public static void setRoot(String fxml) throws IOException {
+        System.out.println("🚀 APP DEBUG: Cambiando vista a: " + fxml);
         
         // Verificar que no sea null
         if (fxml == null || fxml.trim().isEmpty()) {
+            System.out.println("❌ APP ERROR: El nombre del FXML no puede ser null o vacío");
             throw new IOException("El nombre del FXML no puede ser null o vacío");
         }
         
         try {
             // Log del estado actual de sesión
             SesionTemporal sesion = SesionTemporal.getInstancia();
+            System.out.println("📊 APP DEBUG: Estado de sesión:");
+            System.out.println("   - Usuario logueado: " + sesion.hayUsuarioLogueado());
+            if (sesion.hayUsuarioLogueado()) {
+                System.out.println("   - Usuario: " + sesion.getNombreCompletoUsuario());
+                System.out.println("   - Rol: " + sesion.getUsuarioRol());
+            }
+            
             // Validaciones específicas por vista
+            System.out.println("🔍 APP DEBUG: Validando navegación para: " + fxml);
             if (!validarNavegacion(fxml, sesion)) {
+                System.out.println("❌ APP DEBUG: Validación de navegación falló");
                 return; // No continuar si la validación falla
             }
             
+            System.out.println("✅ APP DEBUG: Validación de navegación exitosa");
+            
             // Cargar la nueva vista
+            System.out.println("📁 APP DEBUG: Cargando FXML: " + fxml);
             Parent root = loadFXML(fxml);
+            System.out.println("✅ APP DEBUG: FXML cargado exitosamente");
             
             if (scene != null) {
+                System.out.println("🎭 APP DEBUG: Cambiando root de scene");
                 scene.setRoot(root);
+                System.out.println("✅ APP DEBUG: Root cambiado exitosamente");
                 
                 // Mantener estilos CSS después del cambio de vista
                 mantenlerEstilosCSS();
+                System.out.println("✅ APP DEBUG: Vista cambiada completamente a: " + fxml);
                 
             } else {
+                System.out.println("❌ APP ERROR: Scene no está inicializada");
                 throw new IOException("Scene no está inicializada");
             }
             
         } catch (IOException e) {
+            System.out.println("❌ APP ERROR: Error al cambiar vista: " + e.getMessage());
+            e.printStackTrace();
+            
             if (!fxml.equals("LoginView")) {
+                System.out.println("🔄 APP DEBUG: Intentando fallback a LoginView");
                 try {
                     scene.setRoot(loadFXML("LoginView"));
                     mantenlerEstilosCSS();
+                    System.out.println("✅ APP DEBUG: Fallback a LoginView exitoso");
                 } catch (IOException fallbackError) {
+                    System.out.println("❌ APP ERROR: Fallback también falló: " + fallbackError.getMessage());
                     throw fallbackError;
                 }
             } else {
                 throw e; // Si ya estamos intentando cargar LoginView y falla, propagar el error
             }
         }
-    }
-    
+    }    
     /**
      * Mantener estilos CSS después de cambiar vista - OPTIMIZADO
      */

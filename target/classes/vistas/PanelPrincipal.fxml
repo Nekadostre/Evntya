@@ -1,37 +1,115 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
+<?import javafx.scene.image.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.*?>
 
-<AnchorPane xmlns="http://javafx.com/javafx/23.0.1" 
-            xmlns:fx="http://javafx.com/fxml/1" 
-            fx:controller="controladores.PanelPrincipalController"
-            styleClass="root">
-    
-    <VBox alignment="TOP_CENTER" spacing="20.0" prefWidth="600.0" prefHeight="400.0" 
-          AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" 
-          AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0"
-          styleClass="contenedor-principal">
-        
-        <!-- Barra de navegación -->
-        <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="barra-navegacion">
-            <padding>
-                <Insets top="10.0" right="20.0" bottom="10.0" left="20.0" />
-            </padding>
-            <Button text="Clientes" onAction="#abrirClientes" styleClass="boton-nav" />
-            <Button text="Eventos" onAction="#abrirEventos" styleClass="boton-nav" />
-            <Button text="Reservas" onAction="#abrirReservas" styleClass="boton-nav" />
-            <Region HBox.hgrow="ALWAYS" />
-            <Button text="Cerrar sesión" onAction="#cerrarSesion" styleClass="boton-salir" />
+<BorderPane xmlns:fx="http://javafx.com/fxml" fx:controller="controladores.PanelPrincipalController" 
+            prefWidth="1200" prefHeight="800" stylesheets="/css/estilos.css" styleClass="fondo-colorido-principal">
+
+    <!-- Header superior con botón cerrar sesión -->
+    <top>
+        <HBox alignment="CENTER_RIGHT" styleClass="header-top">
+            <Button text="Cerrar sesión" onAction="#cerrarSesion" styleClass="btn-cerrar-sesion-flotante" fx:id="btnCerrarSesion" />
         </HBox>
-        
-        <!-- Contenido principal -->
-        <VBox alignment="CENTER" spacing="10.0" styleClass="contenedor-bienvenida">
-            <Label text="¡Bienvenido!" styleClass="titulo-bienvenida" />
-            <Label fx:id="lblNombreUsuario" text="Empleado: ---" styleClass="texto-bienvenida" />
-            <Label text="¿Qué deseas realizar hoy?" styleClass="texto-bienvenida" />
+    </top>
+
+    <!-- Contenido principal centrado ocupando toda la ventana -->
+    <center>
+        <VBox alignment="CENTER" styleClass="contenedor-principal-fullscreen">
+
+            <!-- Header con logo del castillo y título colorido -->
+            <VBox alignment="CENTER" styleClass="header-logo-titulo">
+                <!-- Logo del castillo usando tu imagen -->
+                <ImageView fx:id="imgCastillo" styleClass="logo-castillo-grande">
+                    <image>
+                        <Image url="@/img/castillo.png" />
+                    </image>
+                </ImageView>
+                
+                <!-- Título con letras de colores más grande CON FUENTE WALTER INLINE -->
+                <HBox alignment="CENTER" styleClass="contenedor-titulo-multicolor">
+                    <Label text="S" styleClass="letra-titulo letra-roja" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ff1744;" />
+                    <Label text="E" styleClass="letra-titulo letra-naranja" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ff6d00;" />
+                    <Label text="G" styleClass="letra-titulo letra-amarilla" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ffd600;" />
+                    <Label text="U" styleClass="letra-titulo letra-verde" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #00c853;" />
+                    <Label text="N" styleClass="letra-titulo letra-azul" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #2979ff;" />
+                    <Label text="D" styleClass="letra-titulo letra-morada" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #d500f9;" />
+                    <Label text="O" styleClass="letra-titulo letra-rosa" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ff4081;" />
+                    
+                    <Region styleClass="espacio-palabras" />
+                    
+                    <Label text="C" styleClass="letra-titulo letra-roja-oscura" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #dd2c00;" />
+                    <Label text="A" styleClass="letra-titulo letra-marron" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #bf360c;" />
+                    <Label text="S" styleClass="letra-titulo letra-gris" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #455a64;" />
+                    <Label text="T" styleClass="letra-titulo letra-roja" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ff1744;" />
+                    <Label text="I" styleClass="letra-titulo letra-naranja" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ff6d00;" />
+                    <Label text="L" styleClass="letra-titulo letra-amarilla" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #ffd600;" />
+                    <Label text="L" styleClass="letra-titulo letra-verde" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #00c853;" />
+                    <Label text="O" styleClass="letra-titulo letra-azul" style="-fx-font-family: 'walter', 'Walter', Arial; -fx-font-size: 90px; -fx-font-weight: bold; -fx-text-fill: #2979ff;" />
+                </HBox>
+            </VBox>
+
+            <!-- Botones principales más grandes usando tus imágenes -->
+            <HBox alignment="CENTER" styleClass="contenedor-botones-fullscreen">
+                <!-- Botón Clientes -->
+                <VBox alignment="CENTER" styleClass="contenedor-boton-individual">
+                    <Button fx:id="btnClientes" onAction="#abrirClientes" styleClass="btn-principal-fullscreen btn-clientes-fullscreen">
+                        <graphic>
+                            <ImageView styleClass="icono-boton-fullscreen">
+                                <image>
+                                    <Image url="@/img/clientes.png" />
+                                </image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                    <Label text="Clientes" styleClass="texto-boton-fullscreen" />
+                </VBox>
+
+                <!-- Botón Eventos -->
+                <VBox alignment="CENTER" styleClass="contenedor-boton-individual">
+                    <Button fx:id="btnEventos" onAction="#abrirEventos" styleClass="btn-principal-fullscreen btn-eventos-fullscreen">
+                        <graphic>
+                            <ImageView styleClass="icono-boton-fullscreen">
+                                <image>
+                                    <Image url="@/img/eventos.png" />
+                                </image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                    <Label text="Eventos" styleClass="texto-boton-fullscreen" />
+                </VBox>
+
+                <!-- Botón Reservas -->
+                <VBox alignment="CENTER" styleClass="contenedor-boton-individual">
+                    <Button fx:id="btnReservas" onAction="#abrirReservas" styleClass="btn-principal-fullscreen btn-reservas-fullscreen">
+                        <graphic>
+                            <ImageView styleClass="icono-boton-fullscreen">
+                                <image>
+                                    <Image url="@/img/reservas.png" />
+                                </image>
+                            </ImageView>
+                        </graphic>
+                    </Button>
+                    <Label text="Reservas" styleClass="texto-boton-fullscreen" />
+                </VBox>
+            </HBox>
+
+            <!-- Área de bienvenida más grande -->
+            <VBox alignment="CENTER" styleClass="contenedor-bienvenida-fullscreen">
+                <Label text="¡BIENVENIDO!" styleClass="texto-bienvenido-fullscreen" />
+                <Label fx:id="lblNombreUsuario" text="Empleado: Usuario no identificado" styleClass="texto-empleado-fullscreen" />
+                <Label text="¿Qué deseas realizar hoy?" styleClass="texto-pregunta-fullscreen" />
+            </VBox>
+
         </VBox>
-        
-    </VBox>
-</AnchorPane>
+    </center>
+
+    <!-- Footer opcional -->
+    <bottom>
+        <HBox alignment="CENTER" styleClass="footer-fullscreen">
+            <Label text="Sistema de Gestión SEGUNDO CASTILLO - Versión 1.0" styleClass="texto-footer-fullscreen" />
+        </HBox>
+    </bottom>
+
+</BorderPane>
