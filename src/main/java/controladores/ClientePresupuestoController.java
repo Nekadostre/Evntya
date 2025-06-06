@@ -21,6 +21,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.awt.Desktop;
+import java.io.File;
+import java.nio.file.Files;
+import java.util.Timer;
+import java.util.TimerTask;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 
 public class ClientePresupuestoController {
     private static final boolean DEBUG_MODE = false; // Cambia a true solo cuando necesites debug
@@ -61,6 +69,7 @@ public class ClientePresupuestoController {
         cargarClienteSeleccionado();
         configurarValidaciones();
         crearNotificacionSutil();
+        limpiarArchivosTemporales(); // Limpiar archivos temporales antiguos
         
         debug("✅ ClientePresupuestoController inicializado correctamente");
     }
@@ -453,6 +462,323 @@ public class ClientePresupuestoController {
         } catch (Exception e) {
             System.err.println("❌ Error al regresar: " + e.getMessage());
             mostrarNotificacionSutil("No se pudo regresar al menú de eventos", false);
+        }
+    }
+
+    // ========== MÉTODOS PARA VER PDF ==========
+
+    @FXML
+    private void verPDF() {
+        Cliente clienteSeleccionado = tablaClientes.getSelectionModel().getSelectedItem();
+        
+        if (clienteSeleccionado == null) {
+            mostrarNotificacionSutil("Debes seleccionar un cliente de la tabla", false);
+            return;
+        }
+        
+        debug("🔍 Buscando PDFs para cliente: " + clienteSeleccionado.getNombreCompleto());
+        mostrarNotificacionSutil("Buscando presupuestos del cliente...", true);
+        
+        // Buscar presupuestos del cliente en la base de datos
+        java.util.List<PresupuestoInfo> presupuestos = buscarPresupuestosCliente(clienteSeleccionado.getId());
+        
+        if (presupuestos.isEmpty()) {
+            mostrarNotificacionSutil("No se encontraron presupuestos para este cliente", false);
+            return;
+        }
+        
+        if (presupuestos.size() == 1) {
+            // Solo un presupuesto, abrirlo directamente
+            abrirPDF(presupuestos.get(0));
+        } else {
+            // Múltiples presupuestos, mostrar lista para seleccionar
+            mostrarListaPresupuestos(presupuestos);
+        }
+    }
+
+    // ========== CLASE AUXILIAR PARA INFORMACIÓN DE PRESUPUESTOS ==========
+    public static class PresupuestoInfo {
+        private int id;
+        private String numeroPresupuesto;
+        private String fechaCreacion;
+        private double totalGeneral;
+        private String nombreArchivo;
+        private String estado;
+        
+        public PresupuestoInfo(int id, String numeroPresupuesto, String fechaCreacion, 
+                              double totalGeneral, String nombreArchivo, String estado) {
+            this.id = id;
+            this.numeroPresupuesto = numeroPresupuesto;
+            this.fechaCreacion = fechaCreacion;
+            this.totalGeneral = totalGeneral;
+            this.nombreArchivo = nombreArchivo;
+            this.estado = estado;
+        }
+        
+        // Getters
+        public int getId() { return id; }
+        public String getNumeroPresupuesto() { return numeroPresupuesto; }
+        public String getFechaCreacion() { return fechaCreacion; }
+        public double getTotalGeneral() { return totalGeneral; }
+        public String getNombreArchivo() { return nombreArchivo; }
+        public String getEstado() { return estado; }
+        
+        @Override
+        public String toString() {
+            return String.format("%s - $%.2f MXN (%s) - %s", 
+                    numeroPresupuesto, totalGeneral, estado, fechaCreacion);
+        }
+    }
+
+    // ========== BUSCAR PRESUPUESTOS DEL CLIENTE ==========
+    private java.util.List<PresupuestoInfo> buscarPresupuestosCliente(int clienteId) {
+        java.util.List<PresupuestoInfo> presupuestos = new java.util.ArrayList<>();
+        
+        try (Connection conn = Conexion.conectar()) {
+            String sql = "SELECT id, numero_presupuesto, fecha_creacion, total_general, " +
+                        "nombre_archivo_pdf, estado FROM presupuestos " +
+                        "WHERE cliente_id = ? " +
+                        "ORDER BY fecha_creacion DESC";
+            
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, clienteId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                PresupuestoInfo info = new PresupuestoInfo(
+                    rs.getInt("id"),
+                    rs.getString("numero_presupuesto"),
+                    rs.getTimestamp("fecha_creacion").toString(),
+                    rs.getDouble("total_general"),
+                    rs.getString("nombre_archivo_pdf"),
+                    rs.getString("estado")
+                );
+                presupuestos.add(info);
+            }
+            
+            debug("✅ Encontrados " + presupuestos.size() + " presupuestos para cliente ID: " + clienteId);
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error al buscar presupuestos: " + e.getMessage());
+            mostrarNotificacionSutil("Error al buscar presupuestos: " + e.getMessage(), false);
+        }
+        
+        return presupuestos;
+    }
+
+    // ========== MOSTRAR LISTA DE PRESUPUESTOS PARA SELECCIONAR ==========
+    private void mostrarListaPresupuestos(java.util.List<PresupuestoInfo> presupuestos) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Seleccionar Presupuesto");
+        alert.setHeaderText("Este cliente tiene múltiples presupuestos:");
+        
+        // Crear ComboBox con los presupuestos
+        ComboBox<PresupuestoInfo> comboPresupuestos = new ComboBox<>();
+        comboPresupuestos.getItems().addAll(presupuestos);
+        comboPresupuestos.getSelectionModel().selectFirst();
+        comboPresupuestos.setPrefWidth(500);
+        
+        alert.getDialogPane().setContent(comboPresupuestos);
+        
+        // Configurar botones
+        alert.getButtonTypes().setAll(
+            new ButtonType("Ver PDF", ButtonBar.ButtonData.OK_DONE),
+            new ButtonType("Cancelar", ButtonBar.ButtonData.CANCEL_CLOSE)
+        );
+        
+        // Mostrar diálogo
+        alert.showAndWait().ifPresent(response -> {
+            if (response.getButtonData() == ButtonBar.ButtonData.OK_DONE) {
+                PresupuestoInfo seleccionado = comboPresupuestos.getSelectionModel().getSelectedItem();
+                if (seleccionado != null) {
+                    abrirPDF(seleccionado);
+                }
+            }
+        });
+    }
+
+    // ========== ABRIR PDF (PRINCIPAL) ==========
+    private void abrirPDF(PresupuestoInfo presupuesto) {
+        debug("🔄 Intentando abrir PDF: " + presupuesto.getNombreArchivo());
+        
+        try {
+            // Paso 1: Intentar abrir desde Desktop (donde se guardan los nuevos)
+            boolean abiertoDesdeDesktop = intentarAbrirDesdeDesktop(presupuesto.getNombreArchivo());
+            
+            if (abiertoDesdeDesktop) {
+                mostrarNotificacionSutil("PDF abierto desde Desktop", true);
+                return;
+            }
+            
+            // Paso 2: Extraer desde base de datos
+            debug("🔄 PDF no encontrado en Desktop, extrayendo desde base de datos...");
+            boolean extraidoDesdeBD = extraerPDFDesdeBD(presupuesto);
+            
+            if (extraidoDesdeBD) {
+                mostrarNotificacionSutil("PDF extraído y abierto desde base de datos", true);
+            } else {
+                mostrarNotificacionSutil("No se pudo abrir el PDF", false);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error al abrir PDF: " + e.getMessage());
+            mostrarNotificacionSutil("Error al abrir PDF: " + e.getMessage(), false);
+        }
+    }
+
+    // ========== INTENTAR ABRIR DESDE DESKTOP ==========
+    private boolean intentarAbrirDesdeDesktop(String nombreArchivo) {
+        try {
+            // Buscar en Desktop
+            String rutaDesktop = System.getProperty("user.home") + "/Desktop/Presupuestos";
+            java.io.File carpetaDesktop = new java.io.File(rutaDesktop);
+            
+            if (!carpetaDesktop.exists()) {
+                // Probar con separador de Windows
+                rutaDesktop = System.getProperty("user.home") + "\\Desktop\\Presupuestos";
+                carpetaDesktop = new java.io.File(rutaDesktop);
+            }
+            
+            if (!carpetaDesktop.exists()) {
+                debug("📁 Carpeta de presupuestos no existe en Desktop");
+                return false;
+            }
+            
+            // Buscar el archivo específico
+            java.io.File archivoPDF = new java.io.File(carpetaDesktop, nombreArchivo);
+            
+            if (!archivoPDF.exists()) {
+                // Buscar archivos similares (por si el nombre cambió ligeramente)
+                java.io.File[] archivos = carpetaDesktop.listFiles((dir, name) -> 
+                    name.toLowerCase().endsWith(".pdf") && 
+                    name.toLowerCase().contains(nombreArchivo.toLowerCase().substring(0, 
+                        Math.min(nombreArchivo.length(), 10)))
+                );
+                
+                if (archivos != null && archivos.length > 0) {
+                    archivoPDF = archivos[0]; // Tomar el primer archivo que coincida
+                    debug("📄 Archivo encontrado con nombre similar: " + archivoPDF.getName());
+                } else {
+                    debug("📄 Archivo no encontrado en Desktop: " + nombreArchivo);
+                    return false;
+                }
+            }
+            
+            // Abrir el archivo
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().open(archivoPDF);
+                debug("✅ PDF abierto desde Desktop: " + archivoPDF.getAbsolutePath());
+                return true;
+            } else {
+                debug("❌ Desktop no soportado en este sistema");
+                return false;
+            }
+            
+        } catch (Exception e) {
+            debug("❌ Error al abrir desde Desktop: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ========== EXTRAER PDF DESDE BASE DE DATOS ==========
+    private boolean extraerPDFDesdeBD(PresupuestoInfo presupuesto) {
+        try (Connection conn = Conexion.conectar()) {
+            String sql = "SELECT archivo_pdf_contenido, nombre_archivo_pdf FROM presupuestos WHERE id = ?";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, presupuesto.getId());
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+                String nombreArchivo = rs.getString("nombre_archivo_pdf");
+                
+                if (pdfBytes != null && pdfBytes.length > 0) {
+                    // Crear carpeta temporal si no existe
+                    String rutaTemp = System.getProperty("java.io.tmpdir") + "/PresupuestosPDFs";
+                    java.io.File carpetaTemp = new java.io.File(rutaTemp);
+                    carpetaTemp.mkdirs();
+                    
+                    // Crear archivo temporal
+                    java.io.File archivoTemp = new java.io.File(carpetaTemp, nombreArchivo);
+                    
+                    // Escribir bytes al archivo
+                    java.nio.file.Files.write(archivoTemp.toPath(), pdfBytes);
+                    
+                    // Abrir el archivo
+                    if (java.awt.Desktop.isDesktopSupported()) {
+                        java.awt.Desktop.getDesktop().open(archivoTemp);
+                        debug("✅ PDF extraído y abierto desde BD: " + archivoTemp.getAbsolutePath());
+                        
+                        // Opcional: Programar eliminación del archivo temporal después de un tiempo
+                        programarLimpiezaArchivo(archivoTemp);
+                        
+                        return true;
+                    } else {
+                        debug("❌ Desktop no soportado");
+                        return false;
+                    }
+                } else {
+                    debug("❌ PDF no tiene contenido en la base de datos");
+                    return false;
+                }
+            } else {
+                debug("❌ No se encontró el presupuesto en la base de datos");
+                return false;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error al extraer PDF desde BD: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ========== PROGRAMAR LIMPIEZA DE ARCHIVOS TEMPORALES ==========
+    private void programarLimpiezaArchivo(java.io.File archivo) {
+        // Crear un timer para eliminar el archivo temporal después de 5 minutos
+        java.util.Timer timer = new java.util.Timer(true);
+        timer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    if (archivo.exists()) {
+                        archivo.delete();
+                        debug("🗑️ Archivo temporal eliminado: " + archivo.getName());
+                    }
+                } catch (Exception e) {
+                    debug("⚠️ No se pudo eliminar archivo temporal: " + e.getMessage());
+                }
+            }
+        }, 5 * 60 * 1000); // 5 minutos
+    }
+
+    // ========== MÉTODO AUXILIAR PARA LIMPIAR ARCHIVOS TEMPORALES ANTIGUOS ==========
+    public void limpiarArchivosTemporales() {
+        try {
+            String rutaTemp = System.getProperty("java.io.tmpdir") + "/PresupuestosPDFs";
+            java.io.File carpetaTemp = new java.io.File(rutaTemp);
+            
+            if (carpetaTemp.exists()) {
+                java.io.File[] archivos = carpetaTemp.listFiles();
+                if (archivos != null) {
+                    long ahora = System.currentTimeMillis();
+                    int eliminados = 0;
+                    
+                    for (java.io.File archivo : archivos) {
+                        // Eliminar archivos más antiguos de 1 hora
+                        if (ahora - archivo.lastModified() > 3600000) {
+                            if (archivo.delete()) {
+                                eliminados++;
+                            }
+                        }
+                    }
+                    
+                    if (eliminados > 0) {
+                        debug("🗑️ Eliminados " + eliminados + " archivos temporales antiguos");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            debug("⚠️ Error al limpiar archivos temporales: " + e.getMessage());
         }
     }
 }

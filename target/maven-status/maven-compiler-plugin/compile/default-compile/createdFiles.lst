@@ -17,11 +17,11 @@ controladores\ClientesController.class
 modelos\ClienteConContrato.class
 modelos\Extra.class
 controladores\Encriptador.class
-controladores\ClientesController$DatosPresupuestoAdicionales.class
 controladores\App.class
 controladores\ClientesController$1.class
 controladores\ReservasController.class
 controladores\ClientesController$DatosPresupuestoCompleto.class
+controladores\ClientesController$2.class
 controladores\VistaPreviaPresupuestoController.class
 controladores\VistaContratoController.class
 controladores\PanelPrincipalController.class
@@ -29,6 +29,8 @@ controladores\ReservasController$ReservaCalendario.class
 controladores\ClientePresupuestoController.class
 controladores\VistaPreviaPresupuestoController$2.class
 controladores\ContratosController$1.class
+controladores\ClientePresupuestoController$1.class
+controladores\ClientePresupuestoController$PresupuestoInfo.class
 controladores\EventosController.class
 modelos\ContratoReserva.class
 dao\MensajesDAO.class

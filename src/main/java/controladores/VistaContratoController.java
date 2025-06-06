@@ -7,6 +7,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import modelos.SesionTemporal;
 import utils.GeneradorPDF;
+import java.awt.Desktop;
 
 // ✅ IMPORTS DE JAVAMAIL HABILITADOS
 import javax.mail.*;
@@ -344,55 +345,193 @@ private String obtenerEmailDesdeBD() {
     
     @FXML
     private void imprimirContrato() {
-        if (!validarDatos()) {
+    if (!validarDatos()) {
+        return;
+    }
+    
+    try {
+        System.out.println("📄 === GENERANDO CONTRATO EN DESKTOP ===");
+        
+        // ⭐ VERIFICAR DESKTOP PRIMERO
+        verificarRutaDesktop();
+        
+        // === CREAR CARPETA EN DESKTOP ===
+        File carpetaContratos = crearCarpetaContratosEnDesktop();
+        if (carpetaContratos == null) {
+            mostrarError("Error", "No se pudo crear la carpeta de contratos en el Desktop");
             return;
         }
         
+        // Si la carpeta no está en Desktop, mostrar advertencia
+        if (!carpetaContratos.getAbsolutePath().contains("Desktop")) {
+            System.out.println("⚠️ ADVERTENCIA: Contrato no se guardará en Desktop, se guardará en: " + carpetaContratos.getAbsolutePath());
+            
+            Alert info = new Alert(Alert.AlertType.INFORMATION);
+            info.setTitle("Ubicación de Contratos");
+            info.setHeaderText("INFO: Los contratos se guardarán en:");
+            info.setContentText(carpetaContratos.getAbsolutePath() + "\n\n(No fue posible usar el Desktop)");
+            info.show();
+        } else {
+            System.out.println("🎉 CONFIRMADO: Contratos se guardarán en Desktop: " + carpetaContratos.getAbsolutePath());
+        }
+        
+        // Generar nombre del archivo
+        String nombreCliente = sesion.getClienteNombreCompleto()
+            .replaceAll("[^a-zA-Z0-9\\s]", "")
+            .replaceAll("\\s+", "_")
+            .trim();
+            
+        if (nombreCliente.isEmpty()) {
+            nombreCliente = "Cliente_Sin_Nombre";
+        }
+        
+        String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String nombreArchivo = "Contrato_" + nombreCliente + "_" + fecha + ".pdf";
+        
+        File archivoContrato = new File(carpetaContratos, nombreArchivo);
+        
+        // Verificar si el archivo ya existe y crear uno único
+        int contador = 1;
+        while (archivoContrato.exists()) {
+            String nombreArchivoNuevo = "Contrato_" + nombreCliente + "_" + fecha + "_" + contador + ".pdf";
+            archivoContrato = new File(carpetaContratos, nombreArchivoNuevo);
+            contador++;
+            if (contador > 100) {
+                mostrarError("Error", "Demasiados archivos con el mismo nombre");
+                return;
+            }
+        }
+        
+        System.out.println("✅ Archivo destino FINAL: " + archivoContrato.getAbsolutePath());
+        
+        // Generar el PDF usando la utilidad existente
+        File pdfGenerado = GeneradorPDF.generarContratoPDF(
+            sesion, nombreFestejado, fechaContrato, archivoContrato.getAbsolutePath()
+        );
+        
+        // Guardar la ruta del PDF generado para envío por email
+        ultimoPDFGenerado = pdfGenerado.getAbsolutePath();
+        
+        // ⭐ GUARDAR EN BASE DE DATOS CON BLOB
+        guardarContratoEnBD(pdfGenerado.getAbsolutePath());
+        
+        // ⭐ ABRIR PDF AUTOMÁTICAMENTE
         try {
-            // Crear carpeta Contratos si no existe
-            File carpetaContratos = new File("Contratos");
-            if (!carpetaContratos.exists()) {
-                carpetaContratos.mkdirs();
-                System.out.println("✅ Carpeta 'Contratos' creada");
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().open(pdfGenerado);
+                System.out.println("✅ Contrato abierto automáticamente");
+            }
+        } catch (Exception e) {
+            System.err.println("⚠️ No se pudo abrir automáticamente: " + e.getMessage());
+        }
+        
+        Alert exito = new Alert(Alert.AlertType.INFORMATION);
+        exito.setTitle("Contrato Generado");
+        exito.setHeaderText("✅ Contrato PDF generado exitosamente");
+        exito.setContentText("El contrato se ha guardado en:\n🖥️ Desktop: " + pdfGenerado.getAbsolutePath() + 
+                           "\n💾 Base de datos: Guardado como BLOB" +
+                           "\n📋 Reserva: Creada automáticamente" +
+                           "\n\n¡Disponible desde cualquier computadora!");
+        exito.show();
+        
+    } catch (Exception e) {
+        LOGGER.log(Level.SEVERE, "Error al generar contrato PDF", e);
+        mostrarError("Error", "Error al generar el contrato PDF: " + e.getMessage());
+    }
+}
+
+private File crearCarpetaContratosEnDesktop() {
+    System.out.println("🔄 Intentando crear carpeta de contratos en Desktop...");
+    
+    // Lista de ubicaciones con DESKTOP como PRIMERA OPCIÓN
+    String[] ubicacionesPosibles = {
+        System.getProperty("user.home") + "/Desktop/Contratos",     // 🎯 DESKTOP PRIMERO
+        System.getProperty("user.home") + "\\Desktop\\Contratos",   // 🎯 DESKTOP (Windows)
+        System.getProperty("user.home") + "/Documents/Contratos",   // Documentos
+        System.getProperty("user.dir") + "/Contratos",              // Carpeta actual
+        "Contratos",                                                // Carpeta relativa
+        System.getProperty("java.io.tmpdir") + "/Contratos"         // Temporal como último recurso
+    };
+    
+    for (String ubicacion : ubicacionesPosibles) {
+        try {
+            File carpeta = new File(ubicacion);
+            
+            System.out.println("🔍 Probando ubicación: " + carpeta.getAbsolutePath());
+            
+            // Si la carpeta ya existe y tiene permisos
+            if (carpeta.exists()) {
+                if (carpeta.canWrite()) {
+                    System.out.println("✅ Carpeta existente con permisos: " + carpeta.getAbsolutePath());
+                    return carpeta;
+                } else {
+                    System.out.println("❌ Carpeta existe pero sin permisos de escritura: " + ubicacion);
+                    continue;
+                }
             }
             
-            // Generar nombre del archivo
-            String nombreCliente = sesion.getClienteNombreCompleto().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_");
-            String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String nombreArchivo = "Contrato_" + nombreCliente + "_" + fecha + ".pdf";
+            // Intentar crear la carpeta y sus directorios padre si no existen
+            boolean carpetaCreada = carpeta.mkdirs();
             
-            // Ruta completa donde se guardará el archivo
-            String rutaCompleta = "Contratos/" + nombreArchivo;
-            File archivoContrato = new File(rutaCompleta);
-            
-            // Generar el PDF usando la utilidad existente
-            File pdfGenerado = GeneradorPDF.generarContratoPDF(
-                sesion, nombreFestejado, fechaContrato, archivoContrato.getAbsolutePath()
-            );
-            
-            // Guardar la ruta del PDF generado para envío por email
-            ultimoPDFGenerado = pdfGenerado.getAbsolutePath();
-            
-            // Guardar en base de datos
-            guardarContratoEnBD(pdfGenerado.getAbsolutePath());
-            
-            Alert exito = new Alert(Alert.AlertType.INFORMATION);
-            exito.setTitle("Contrato Generado");
-            exito.setHeaderText("✅ Contrato PDF generado exitosamente");
-            exito.setContentText("El contrato se ha guardado como PDF en:\n" + pdfGenerado.getAbsolutePath() + 
-                                "\n\n✅ También se registró en la base de datos y se creó la reserva automáticamente." +
-                                "\n\n📁 Ubicación: Carpeta 'Contratos'");
-            exito.show();
+            if (carpetaCreada || carpeta.exists()) {
+                // Verificar permisos de escritura
+                if (carpeta.canWrite()) {
+                    System.out.println("✅ Carpeta creada exitosamente: " + carpeta.getAbsolutePath());
+                    
+                    // Mostrar mensaje de confirmación si es Desktop
+                    if (ubicacion.contains("Desktop")) {
+                        System.out.println("🎉 Contratos se guardarán en el Desktop: " + carpeta.getAbsolutePath());
+                    }
+                    
+                    return carpeta;
+                } else {
+                    System.out.println("❌ Carpeta creada pero sin permisos de escritura: " + ubicacion);
+                    continue;
+                }
+            } else {
+                System.out.println("❌ No se pudo crear carpeta: " + ubicacion);
+                continue;
+            }
             
         } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al generar contrato PDF", e);
-            mostrarError("Error", "Error al generar el contrato PDF: " + e.getMessage());
+            System.err.println("❌ Error con ubicación " + ubicacion + ": " + e.getMessage());
+            continue;
         }
     }
     
+    // Si llegamos aquí, ninguna ubicación funcionó
+    System.err.println("❌ No se pudo crear carpeta en ninguna ubicación, incluyendo Desktop");
+    return null;
+}
+
+private void verificarRutaDesktop() {
+    try {
+        String rutaDesktop = System.getProperty("user.home") + "/Desktop";
+        File desktop = new File(rutaDesktop);
+        
+        System.out.println("=== VERIFICACIÓN DEL DESKTOP ===");
+        System.out.println("Ruta del Desktop: " + desktop.getAbsolutePath());
+        System.out.println("Desktop existe: " + desktop.exists());
+        System.out.println("Puede escribir: " + desktop.canWrite());
+        System.out.println("Puede leer: " + desktop.canRead());
+        
+        // Probar con la ruta de Windows también
+        String rutaDesktopWindows = System.getProperty("user.home") + "\\Desktop";
+        File desktopWindows = new File(rutaDesktopWindows);
+        System.out.println("Ruta Desktop Windows: " + desktopWindows.getAbsolutePath());
+        System.out.println("Desktop Windows existe: " + desktopWindows.exists());
+        
+        System.out.println("================================");
+        
+    } catch (Exception e) {
+        System.err.println("Error verificando Desktop: " + e.getMessage());
+    }
+}
+
+    
 @FXML
 private void sendtomail() {
-    System.out.println("📧 === INICIANDO ENVÍO DE CONTRATO POR EMAIL ===");
+    System.out.println("📧 === INICIANDO ENVÍO DE CONTRATO POR EMAIL - VERSION CORREGIDA ===");
     
     try {
         if (!validarDatos()) {
@@ -401,31 +540,47 @@ private void sendtomail() {
 
         SesionTemporal sesion = SesionTemporal.getInstancia();
         
-        // ========== OBTENER EMAIL DIRECTAMENTE DE LA BD CON COLUMNA CORRECTA ==========
-        String emailCliente = verificarEmailEnBD(sesion.getClienteId());
+        // ========== OBTENER EMAIL CON MÚLTIPLES MÉTODOS ==========
+        String emailCliente = null;
         
-        System.out.println("🔍 DEBUG: Email obtenido de BD: '" + emailCliente + "'");
+        // MÉTODO 1: Verificar en BD con columna 'correo'
+        emailCliente = verificarEmailEnBD(sesion.getClienteId());
+        System.out.println("🔍 Email desde BD (correo): '" + emailCliente + "'");
         
-        if (emailCliente != null && !emailCliente.trim().isEmpty() && 
-            !emailCliente.equalsIgnoreCase("NULL") && 
-            !emailCliente.equals("Sin email") && 
-            !emailCliente.equals("No registrado") &&
-            esEmailValido(emailCliente.trim())) {
-            
-            // ========== EMAIL VÁLIDO ENCONTRADO - USAR DIRECTAMENTE ==========
+        // MÉTODO 2: Si no funciona, intentar con 'email'
+        if (!esEmailValido(emailCliente)) {
+            emailCliente = verificarEmailEnBDAlternativo(sesion.getClienteId());
+            System.out.println("🔍 Email desde BD (email): '" + emailCliente + "'");
+        }
+        
+        // MÉTODO 3: Intentar desde sesión
+        if (!esEmailValido(emailCliente)) {
+            try {
+                emailCliente = sesion.getClienteEmail();
+                System.out.println("🔍 Email desde sesión: '" + emailCliente + "'");
+            } catch (Exception e) {
+                System.out.println("⚠️ Error obteniendo email desde sesión: " + e.getMessage());
+            }
+        }
+        
+        // VERIFICAR SI TENEMOS UN EMAIL VÁLIDO
+        if (esEmailValido(emailCliente)) {
             emailCliente = emailCliente.trim();
-            System.out.println("✅ USANDO EMAIL DE BD SIN PREGUNTAR: " + emailCliente);
-            
+            System.out.println("✅ EMAIL VÁLIDO ENCONTRADO: " + emailCliente);
         } else {
-            // ========== NO HAY EMAIL VÁLIDO - SOLICITAR MANUALMENTE ==========
-            System.out.println("❌ NO HAY EMAIL VÁLIDO EN BD, SOLICITANDO MANUALMENTE");
-            System.out.println("Motivo: Email obtenido = '" + emailCliente + "'");
+            // NO HAY EMAIL VÁLIDO - SOLICITAR MANUALMENTE
+            System.out.println("❌ NO HAY EMAIL VÁLIDO, SOLICITANDO MANUALMENTE");
+            System.out.println("Emails intentados: BD(correo)='" + verificarEmailEnBD(sesion.getClienteId()) + 
+                             "', BD(email)='" + verificarEmailEnBDAlternativo(sesion.getClienteId()) + "'");
             
             emailCliente = solicitarEmailManual("");
-            if (emailCliente == null) return; // Usuario canceló
+            if (emailCliente == null) {
+                System.out.println("❌ Usuario canceló ingreso de email");
+                return; // Usuario canceló
+            }
         }
 
-        System.out.println("📧 Email final a usar: '" + emailCliente + "'");
+        System.out.println("📧 Email final confirmado: '" + emailCliente + "'");
 
         // ========== VERIFICAR O GENERAR PDF ==========
         if (ultimoPDFGenerado == null || !new File(ultimoPDFGenerado).exists()) {
@@ -437,10 +592,10 @@ private void sendtomail() {
             }
         }
 
-        System.out.println("📄 PDF listo para envío: " + ultimoPDFGenerado);
+        System.out.println("📄 PDF confirmado para envío: " + ultimoPDFGenerado);
 
-        // ========== ENVIAR EMAIL ==========
-        boolean emailEnviado = enviarEmailConContrato(emailCliente, ultimoPDFGenerado);
+        // ========== ENVIAR EMAIL CON CONFIGURACIÓN MEJORADA ==========
+boolean emailEnviado = enviarEmailConContrato(emailCliente, ultimoPDFGenerado);
 
         if (emailEnviado) {
             Alert exito = new Alert(Alert.AlertType.INFORMATION);
@@ -451,14 +606,74 @@ private void sendtomail() {
                                 "\n\nEl cliente recibirá el contrato en su bandeja de entrada.");
             exito.show();
             
-            System.out.println("✅ EMAIL ENVIADO EXITOSAMENTE");
+            System.out.println("✅ EMAIL ENVIADO EXITOSAMENTE A: " + emailCliente);
         } else {
-            mostrarError("Error de Email", "No se pudo enviar el email. Verifique la configuración de correo.");
+            mostrarError("Error de Email", "No se pudo enviar el email a: " + emailCliente + 
+                        "\n\nVerifique:\n• Conexión a internet\n• Configuración del servidor de correo\n• Email del destinatario");
         }
 
     } catch (Exception e) {
         LOGGER.log(Level.SEVERE, "Error al enviar email", e);
-        mostrarError("Error", "Error inesperado al enviar email: " + e.getMessage());
+        System.err.println("❌ ERROR CRÍTICO en sendtomail(): " + e.getMessage());
+        mostrarError("Error Crítico", "Error inesperado al enviar email: " + e.getMessage());
+    }
+}
+
+private String verificarEmailEnBDAlternativo(int clienteId) {
+    try (Connection conn = Conexion.conectar()) {
+        // Intentar con columna 'email' como alternativa
+        String sql = "SELECT email FROM clientes WHERE id = ?";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, clienteId);
+        
+        ResultSet rs = stmt.executeQuery();
+        if (rs.next()) {
+            String email = rs.getString("email");
+            System.out.println("📧 Email alternativo de BD (email): '" + email + "'");
+            return email;
+        } else {
+            System.out.println("❌ No se encontró cliente con ID: " + clienteId + " en columna email");
+            return null;
+        }
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error consultando BD (email): " + e.getMessage());
+        return null;
+    }
+}
+
+// ========== MÉTODO DE DEBUG: MOSTRAR INFORMACIÓN COMPLETA DEL CLIENTE ==========
+private void debugInformacionCompleta() {
+    try {
+        System.out.println("\n📊 === DEBUG INFORMACIÓN COMPLETA DEL CLIENTE ===");
+        
+        SesionTemporal sesion = SesionTemporal.getInstancia();
+        System.out.println("🆔 Cliente ID: " + sesion.getClienteId());
+        System.out.println("👤 Nombre completo: " + sesion.getClienteNombreCompleto());
+        
+        // Verificar emails desde diferentes fuentes
+        System.out.println("\n📧 VERIFICACIÓN DE EMAILS:");
+        
+        // Desde BD (correo)
+        String emailBD1 = verificarEmailEnBD(sesion.getClienteId());
+        System.out.println("   BD (correo): '" + emailBD1 + "' → " + (esEmailValido(emailBD1) ? "VÁLIDO" : "INVÁLIDO"));
+        
+        // Desde BD (email)
+        String emailBD2 = verificarEmailEnBDAlternativo(sesion.getClienteId());
+        System.out.println("   BD (email): '" + emailBD2 + "' → " + (esEmailValido(emailBD2) ? "VÁLIDO" : "INVÁLIDO"));
+        
+        // Desde sesión
+        try {
+            String emailSesion = sesion.getClienteEmail();
+            System.out.println("   Sesión: '" + emailSesion + "' → " + (esEmailValido(emailSesion) ? "VÁLIDO" : "INVÁLIDO"));
+        } catch (Exception e) {
+            System.out.println("   Sesión: ERROR - " + e.getMessage());
+        }
+        
+        System.out.println("📊 === FIN DEBUG ===\n");
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error en debug: " + e.getMessage());
     }
 }
 
@@ -514,41 +729,67 @@ private boolean esEmailValido(String email) {
         return false;
     }
     
+    // Limpiar y verificar
+    email = email.trim();
+    
+    // Verificar que no sea un valor por defecto o inválido
+    if (email.equalsIgnoreCase("null") || 
+        email.equalsIgnoreCase("sin email") || 
+        email.equalsIgnoreCase("no registrado") ||
+        email.equalsIgnoreCase("sin correo")) {
+        return false;
+    }
+    
+    // Validación de formato de email
     String emailPattern = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
-    return email.matches(emailPattern);
+    boolean formatoValido = email.matches(emailPattern);
+    
+    System.out.println("🔍 Validando email: '" + email + "' → " + (formatoValido ? "VÁLIDO" : "INVÁLIDO"));
+    
+    return formatoValido;
 }
     
     // ========== MÉTODO: GENERAR PDF TEMPORAL ==========
     private boolean generarPDFTemporal() {
-        try {
-            // Crear carpeta Contratos si no existe (usar la misma carpeta principal)
-            File carpetaContratos = new File("Contratos");
-            if (!carpetaContratos.exists()) {
-                carpetaContratos.mkdirs();
-                System.out.println("✅ Carpeta 'Contratos' creada");
-            }
-            
-            // Generar nombre del archivo con timestamp para evitar conflictos
-            String nombreCliente = sesion.getClienteNombreCompleto().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_");
-            String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-            String timestamp = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HHmmss"));
-            String nombreArchivo = "Contrato_" + nombreCliente + "_" + fecha + "_" + timestamp + ".pdf";
-            
-            String rutaCompleta = "Contratos/" + nombreArchivo;
-            
-            File pdfGenerado = GeneradorPDF.generarContratoPDF(
-                sesion, nombreFestejado, fechaContrato, rutaCompleta
-            );
-            
-            ultimoPDFGenerado = pdfGenerado.getAbsolutePath();
-            System.out.println("✅ PDF temporal generado en: " + ultimoPDFGenerado);
-            return true;
-            
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Error al generar PDF temporal", e);
+    try {
+        System.out.println("📄 Generando PDF temporal en Desktop...");
+        
+        // Usar la misma lógica que imprimirContrato() pero con timestamp
+        File carpetaContratos = crearCarpetaContratosEnDesktop();
+        if (carpetaContratos == null) {
+            System.err.println("❌ No se pudo crear carpeta para PDF temporal");
             return false;
         }
+        
+        // Generar nombre del archivo con timestamp para evitar conflictos
+        String nombreCliente = sesion.getClienteNombreCompleto()
+            .replaceAll("[^a-zA-Z0-9\\s]", "")
+            .replaceAll("\\s+", "_")
+            .trim();
+            
+        if (nombreCliente.isEmpty()) {
+            nombreCliente = "Cliente_Sin_Nombre";
+        }
+        
+        String fecha = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String timestamp = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HHmmss"));
+        String nombreArchivo = "Contrato_" + nombreCliente + "_" + fecha + "_" + timestamp + ".pdf";
+        
+        File archivoTemporal = new File(carpetaContratos, nombreArchivo);
+        
+        File pdfGenerado = GeneradorPDF.generarContratoPDF(
+            sesion, nombreFestejado, fechaContrato, archivoTemporal.getAbsolutePath()
+        );
+        
+        ultimoPDFGenerado = pdfGenerado.getAbsolutePath();
+        System.out.println("✅ PDF temporal generado en Desktop: " + ultimoPDFGenerado);
+        return true;
+        
+    } catch (Exception e) {
+        LOGGER.log(Level.SEVERE, "Error al generar PDF temporal", e);
+        return false;
     }
+}
     
     // ========== MÉTODO: ENVIAR EMAIL CON CONTRATO ==========
     private boolean enviarEmailConContrato(String emailCliente, String rutaPDF) {

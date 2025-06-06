@@ -45,6 +45,7 @@ import modelos.Cliente;
 import modelos.Extra;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
 
 public class ClientesController {
 
@@ -84,6 +85,9 @@ public class ClientesController {
         limpiarPresupuestosVencidos();
         cargarDatos();
         configurarSeleccionTabla();
+        
+        // DEBUG TEMPORAL - Ver qué hay en la BD
+        debugPresupuestosSimple();
     }
 
     private void configurarTabla() {
@@ -140,133 +144,277 @@ public class ClientesController {
         }
     }
 
-    private void limpiarPresupuestosVencidos() {
-        try (Connection conn = Conexion.conectar()) {
-            System.out.println("🧹 Limpiando presupuestos vencidos (> 1 mes)...");
-            
-            String sqlLimpiar = """
-                DELETE p, c FROM presupuestos p
-                INNER JOIN clientes c ON p.cliente_id = c.id
-                WHERE p.fecha_creacion < DATE_SUB(NOW(), INTERVAL 1 MONTH)
-                AND NOT EXISTS (
-                    SELECT 1 FROM contratos cont WHERE cont.cliente_id = c.id
-                )
-                """;
-            
-            PreparedStatement stmt = conn.prepareStatement(sqlLimpiar);
-            int eliminados = stmt.executeUpdate();
-            
-            if (eliminados > 0) {
-                System.out.println("🗑️ Se eliminaron " + eliminados + " presupuestos/clientes vencidos");
-            } else {
-                System.out.println("✅ No hay presupuestos vencidos para eliminar");
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("❌ Error al limpiar presupuestos vencidos: " + e.getMessage());
+  private void limpiarPresupuestosVencidos() {
+    try (Connection conn = Conexion.conectar()) {
+        System.out.println("🧹 Limpiando presupuestos vencidos (> 30 días)..."); // ⭐ CORREGIDO: 30 días
+        
+        String sqlLimpiar = """
+            DELETE p, c FROM presupuestos p
+            INNER JOIN clientes c ON p.cliente_id = c.id
+            WHERE p.fecha_creacion < DATE_SUB(NOW(), INTERVAL 30 DAY)  -- ⭐ CORREGIDO: 30 días
+            AND NOT EXISTS (
+                SELECT 1 FROM contratos cont WHERE cont.cliente_id = c.id
+            )
+            """;
+        
+        PreparedStatement stmt = conn.prepareStatement(sqlLimpiar);
+        int eliminados = stmt.executeUpdate();
+        
+        if (eliminados > 0) {
+            System.out.println("🗑️ Se eliminaron " + eliminados + " presupuestos/clientes vencidos (>30 días)");
+        } else {
+            System.out.println("✅ No hay presupuestos vencidos para eliminar");
         }
+        
+        // ⭐ MOSTRAR INFORMACIÓN SOBRE LA POLÍTICA DE LIMPIEZA
+        System.out.println("📋 POLÍTICA DE LIMPIEZA:");
+        System.out.println("   • Presupuestos válidos: 30 días");
+        System.out.println("   • Eliminación automática: después de 30 días");
+        System.out.println("   • Los contratos firmados NO se eliminan nunca");
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error al limpiar presupuestos vencidos: " + e.getMessage());
     }
+}
 
     private void cargarDatos() {
-        listaClientes.clear();
+    listaClientes.clear();
+    
+    try (Connection conn = Conexion.conectar()) {
+        System.out.println("🔄 CARGANDO CLIENTES CON PRESUPUESTOS ACTIVOS - DÍAS CORREGIDOS");
         
-        try (Connection conn = Conexion.conectar()) {
-            System.out.println(" CARGANDO CLIENTES CON PRESUPUESTOS ACTIVOS ");
+        // === CONSULTA CORREGIDA - VALIDEZ DE 30 DÍAS ===
+        String sql = """
+            SELECT DISTINCT
+                c.id as cliente_id,
+                c.nombre,
+                c.apellido_paterno,
+                c.apellido_materno,
+                c.telefono,
+                c.correo as email,
+                p.fecha_creacion as fecha_presupuesto,
+                paq.nombre as paquete_nombre,
+                p.total_general as monto_presupuesto,
+                p.numero_presupuesto,
+                CASE 
+                    WHEN EXISTS(SELECT 1 FROM contratos cont WHERE cont.cliente_id = c.id) THEN 'Contratado'
+                    ELSE 'Presupuesto'
+                END as estado_cliente,
+                DATEDIFF(NOW(), p.fecha_creacion) as dias_desde_presupuesto
+            FROM clientes c
+            INNER JOIN (
+                SELECT cliente_id, MAX(fecha_creacion) as max_fecha
+                FROM presupuestos 
+                WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 MONTH)  -- ⭐ VOLVER A 1 MES
+                GROUP BY cliente_id
+            ) latest_p ON c.id = latest_p.cliente_id
+            INNER JOIN presupuestos p ON c.id = p.cliente_id AND p.fecha_creacion = latest_p.max_fecha
+            LEFT JOIN paquetes paq ON p.paquete_id = paq.id
+            ORDER BY p.fecha_creacion DESC
+            """;
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        int contador = 0;
+        
+        while (rs.next()) {
+            contador++;
+            ClienteContrato clienteContrato = new ClienteContrato();
             
-            // CONSULTA CORREGIDA PARA EVITAR DUPLICADOS
-            String sql = """
-                SELECT DISTINCT
-                    c.id as cliente_id,
-                    c.nombre,
-                    c.apellido_paterno,
-                    c.apellido_materno,
-                    c.telefono,
-                    c.correo as email,
-                    p.fecha_creacion as fecha_presupuesto,
-                    paq.nombre as paquete_nombre,
-                    p.total_general as monto_presupuesto,
-                    CASE 
-                        WHEN EXISTS(SELECT 1 FROM contratos cont WHERE cont.cliente_id = c.id) THEN 'Contratado'
-                        ELSE 'Presupuesto'
-                    END as estado_cliente,
-                    DATEDIFF(NOW(), p.fecha_creacion) as dias_desde_presupuesto
-                FROM clientes c
-                INNER JOIN (
-                    SELECT cliente_id, MAX(fecha_creacion) as max_fecha
-                    FROM presupuestos 
-                    WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
-                    GROUP BY cliente_id
-                ) latest_p ON c.id = latest_p.cliente_id
-                INNER JOIN presupuestos p ON c.id = p.cliente_id AND p.fecha_creacion = latest_p.max_fecha
-                LEFT JOIN paquetes paq ON p.paquete_id = paq.id
-                ORDER BY p.fecha_creacion DESC
-                """;
+            clienteContrato.setClienteId(rs.getInt("cliente_id"));
+            clienteContrato.setNombre(rs.getString("nombre") != null ? rs.getString("nombre") : "Sin nombre");
+            clienteContrato.setApellidoPaterno(rs.getString("apellido_paterno") != null ? rs.getString("apellido_paterno") : "Sin apellido");
             
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            ResultSet rs = stmt.executeQuery();
+            String nombreCompleto = (rs.getString("nombre") != null ? rs.getString("nombre") : "") + " " +
+                                   (rs.getString("apellido_paterno") != null ? rs.getString("apellido_paterno") : "") + " " +
+                                   (rs.getString("apellido_materno") != null ? rs.getString("apellido_materno") : "");
+            clienteContrato.setNombreCompleto(nombreCompleto.trim());
             
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            String telefono = rs.getString("telefono");
+            clienteContrato.setTelefono(telefono != null && !telefono.trim().isEmpty() ? telefono : "Sin teléfono");
             
-            while (rs.next()) {
-                ClienteContrato clienteContrato = new ClienteContrato();
-                
-                clienteContrato.setClienteId(rs.getInt("cliente_id"));
-                clienteContrato.setNombre(rs.getString("nombre") != null ? rs.getString("nombre") : "Sin nombre");
-                clienteContrato.setApellidoPaterno(rs.getString("apellido_paterno") != null ? rs.getString("apellido_paterno") : "Sin apellido");
-                
-                String nombreCompleto = (rs.getString("nombre") != null ? rs.getString("nombre") : "") + " " +
-                                       (rs.getString("apellido_paterno") != null ? rs.getString("apellido_paterno") : "") + " " +
-                                       (rs.getString("apellido_materno") != null ? rs.getString("apellido_materno") : "");
-                clienteContrato.setNombreCompleto(nombreCompleto.trim());
-                
-                String telefono = rs.getString("telefono");
-                clienteContrato.setTelefono(telefono != null && !telefono.trim().isEmpty() ? telefono : "Sin teléfono");
-                
-                String email = rs.getString("email");
-                clienteContrato.setEmail(email != null && !email.trim().isEmpty() ? email : "Sin email");
-                
-                try {
-                    java.sql.Date fechaSQL = rs.getDate("fecha_presupuesto");
-                    if (fechaSQL != null) {
-                        clienteContrato.setFechaContrato(fechaSQL.toLocalDate().format(formatter));
-                    } else {
-                        clienteContrato.setFechaContrato(LocalDate.now().format(formatter));
-                    }
-                } catch (SQLException e) {
+            String email = rs.getString("email");
+            clienteContrato.setEmail(email != null && !email.trim().isEmpty() ? email : "Sin email");
+            
+            try {
+                java.sql.Date fechaSQL = rs.getDate("fecha_presupuesto");
+                if (fechaSQL != null) {
+                    clienteContrato.setFechaContrato(fechaSQL.toLocalDate().format(formatter));
+                } else {
                     clienteContrato.setFechaContrato(LocalDate.now().format(formatter));
                 }
-                
-                String paqueteNombre = rs.getString("paquete_nombre");
-                clienteContrato.setPaquete(paqueteNombre != null ? paqueteNombre : "Sin paquete");
-                
-                double montoPresupuesto = rs.getDouble("monto_presupuesto");
-                String montoFormateado = "$" + String.format("%.0f", montoPresupuesto);
-                clienteContrato.setMonto(montoFormateado);
-                clienteContrato.setMontoTotal(montoFormateado);
-                
-                String estadoCliente = rs.getString("estado_cliente");
-                int diasDesde = rs.getInt("dias_desde_presupuesto");
-                int diasRestantes = 30 - diasDesde;
-                
-                if (estadoCliente.equals("Contratado")) {
-                    clienteContrato.setEstado("Contratado");
-                } else {
-                    clienteContrato.setEstado("Presupuesto (" + diasRestantes + " días)");
-                }
-                
-                listaClientes.add(clienteContrato);
+            } catch (SQLException e) {
+                clienteContrato.setFechaContrato(LocalDate.now().format(formatter));
             }
             
-            tablaClientes.setItems(listaClientes);
-            lblTotal.setText(String.valueOf(listaClientes.size()));
+            String paqueteNombre = rs.getString("paquete_nombre");
+            clienteContrato.setPaquete(paqueteNombre != null ? paqueteNombre : "Sin paquete");
             
-            System.out.println("✅ Cargados " + listaClientes.size() + " clientes únicos con presupuestos activos");
+            double montoPresupuesto = rs.getDouble("monto_presupuesto");
+            String montoFormateado = "$" + String.format("%.0f", montoPresupuesto);
+            clienteContrato.setMonto(montoFormateado);
+            clienteContrato.setMontoTotal(montoFormateado);
+            
+            String estadoCliente = rs.getString("estado_cliente");
+            int diasDesde = rs.getInt("dias_desde_presupuesto");
+            int diasRestantes = Math.max(0, 30 - diasDesde); // ⭐ CORREGIDO: 30 días en lugar de 90
+            
+            if (estadoCliente.equals("Contratado")) {
+                clienteContrato.setEstado("Contratado");
+            } else {
+                if (diasRestantes > 0) {
+                    clienteContrato.setEstado("Presupuesto (" + diasRestantes + " días)");
+                } else {
+                    clienteContrato.setEstado("Presupuesto (Vencido)");
+                }
+            }
+            
+            listaClientes.add(clienteContrato);
+            
+            // ⭐ DEBUG DETALLADO POR CADA CLIENTE CARGADO
+            System.out.println("✅ Cliente #" + contador + " cargado:");
+            System.out.println("   ID: " + clienteContrato.getClienteId());
+            System.out.println("   Nombre: " + clienteContrato.getNombreCompleto());
+            System.out.println("   Fecha: " + clienteContrato.getFechaContrato());
+            System.out.println("   Días desde creación: " + diasDesde);
+            System.out.println("   Días restantes: " + diasRestantes + "/30"); // ⭐ MOSTRAR DE 30
+            System.out.println("   Estado: " + clienteContrato.getEstado());
+            System.out.println("   ─────────────────────");
+        }
+        
+        tablaClientes.setItems(listaClientes);
+        lblTotal.setText(String.valueOf(listaClientes.size()));
+        
+        System.out.println("✅ TOTAL CARGADOS: " + listaClientes.size() + " clientes con presupuestos activos");
+        System.out.println("📅 VALIDEZ: Presupuestos válidos por 30 días");
+        
+        // ⭐ VERIFICACIÓN ADICIONAL
+        verificarPresupuestosRecientes();
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error al cargar presupuestos: " + e.getMessage());
+        e.printStackTrace();
+        mostrarMensaje("Error", "No se pudieron cargar los presupuestos: " + e.getMessage(), "#e74c3c");
+    }
+}
+    
+    // ⭐ MÉTODO ADICIONAL: VERIFICAR PRESUPUESTOS RECIENTES EN BD
+private void verificarPresupuestosRecientes() {
+    try (Connection conn = Conexion.conectar()) {
+        System.out.println("\n🔍 === VERIFICACIÓN DE PRESUPUESTOS RECIENTES ===");
+        
+        String sqlRecientes = """
+            SELECT 
+                p.id,
+                p.cliente_nombre,
+                p.numero_presupuesto,
+                p.fecha_creacion,
+                p.total_general,
+                c.nombre as cliente_bd_nombre,
+                c.apellido_paterno,
+                CASE WHEN p.archivo_pdf_contenido IS NOT NULL THEN 'SÍ' ELSE 'NO' END as tiene_pdf
+            FROM presupuestos p
+            LEFT JOIN clientes c ON p.cliente_id = c.id
+            WHERE p.fecha_creacion >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            ORDER BY p.fecha_creacion DESC
+            LIMIT 10
+            """;
+        
+        PreparedStatement stmt = conn.prepareStatement(sqlRecientes);
+        ResultSet rs = stmt.executeQuery();
+        
+        int contador = 0;
+        while (rs.next()) {
+            contador++;
+            System.out.println("📋 Presupuesto #" + contador + ":");
+            System.out.println("   ID Presupuesto: " + rs.getInt("id"));
+            System.out.println("   Cliente en presupuesto: " + rs.getString("cliente_nombre"));
+            System.out.println("   Cliente en BD: " + rs.getString("cliente_bd_nombre") + " " + rs.getString("apellido_paterno"));
+            System.out.println("   Número: " + rs.getString("numero_presupuesto"));
+            System.out.println("   Fecha: " + rs.getTimestamp("fecha_creacion"));
+            System.out.println("   Total: $" + rs.getDouble("total_general"));
+            System.out.println("   Tiene PDF: " + rs.getString("tiene_pdf"));
+            System.out.println("   ─────────────────────");
+        }
+        
+        if (contador == 0) {
+            System.out.println("❌ NO HAY PRESUPUESTOS EN LOS ÚLTIMOS 7 DÍAS");
+            
+            // Verificar si hay presupuestos en general
+            String sqlTotal = "SELECT COUNT(*) as total FROM presupuestos";
+            PreparedStatement stmtTotal = conn.prepareStatement(sqlTotal);
+            ResultSet rsTotal = stmtTotal.executeQuery();
+            
+            if (rsTotal.next()) {
+                int total = rsTotal.getInt("total");
+                System.out.println("📊 Total de presupuestos en BD: " + total);
+                
+                if (total > 0) {
+                    System.out.println("⚠️ HAY PRESUPUESTOS PERO SON MÁS ANTIGUOS DE 7 DÍAS");
+                }
+            }
+        } else {
+            System.out.println("✅ ENCONTRADOS " + contador + " PRESUPUESTOS RECIENTES");
+        }
+        
+        System.out.println("🔍 === FIN VERIFICACIÓN ===\n");
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error en verificación: " + e.getMessage());
+    }
+}
+    
+    // ========== MÉTODO SIMPLIFICADO DE DEBUG ==========
+    private void debugPresupuestosSimple() {
+        System.out.println("🔍 === DEBUG SIMPLE: PRESUPUESTOS ===");
+        
+        try (Connection conn = Conexion.conectar()) {
+            // Contar presupuestos totales
+            String sqlTotal = "SELECT COUNT(*) as total FROM presupuestos";
+            PreparedStatement stmtTotal = conn.prepareStatement(sqlTotal);
+            ResultSet rsTotal = stmtTotal.executeQuery();
+            
+            if (rsTotal.next()) {
+                System.out.println("📊 Total presupuestos en BD: " + rsTotal.getInt("total"));
+            }
+            
+            // Mostrar los 3 más recientes
+            String sqlRecientes = """
+                SELECT 
+                    cliente_nombre, 
+                    fecha_creacion, 
+                    total_general,
+                    CASE WHEN archivo_pdf_contenido IS NOT NULL THEN 'SÍ' ELSE 'NO' END as tiene_pdf
+                FROM presupuestos 
+                ORDER BY fecha_creacion DESC 
+                LIMIT 5
+                """;
+            
+            PreparedStatement stmtRecientes = conn.prepareStatement(sqlRecientes);
+            ResultSet rsRecientes = stmtRecientes.executeQuery();
+            
+            System.out.println("📋 Presupuestos más recientes:");
+            int contador = 0;
+            while (rsRecientes.next()) {
+                contador++;
+                System.out.println("   " + contador + ". " + 
+                                 rsRecientes.getString("cliente_nombre") + 
+                                 " - $" + rsRecientes.getDouble("total_general") + 
+                                 " - PDF: " + rsRecientes.getString("tiene_pdf") +
+                                 " - " + rsRecientes.getTimestamp("fecha_creacion"));
+            }
+            
+            if (contador == 0) {
+                System.out.println("   ❌ No hay presupuestos en la base de datos");
+            }
             
         } catch (SQLException e) {
-            System.err.println("❌ Error al cargar presupuestos: " + e.getMessage());
-            e.printStackTrace();
-            mostrarMensaje("Error", "No se pudieron cargar los presupuestos: " + e.getMessage(), "#e74c3c");
+            System.err.println("❌ Error en debug: " + e.getMessage());
         }
+        
+        System.out.println("🔍 === FIN DEBUG ===");
     }
 
     // MÉTODOS PARA DATOS COMPLETOS DEL PRESUPUESTO 
@@ -818,62 +966,6 @@ private String crearContenidoEmailCompleto(ClienteContrato cliente) {
     return html.toString();
 }
 
-    // ========== CLASE AUXILIAR: DATOS ADICIONALES ==========
-private static class DatosPresupuestoAdicionales {
-    String numeroPresupuesto;
-    String estado;
-    String plazos;
-    String metodoPago;
-    java.time.LocalDate validoHasta;
-    String observaciones;
-}
-
-
-    // ========== MÉTODO NUEVO: OBTENER DATOS ADICIONALES DEL PRESUPUESTO ==========
-private DatosPresupuestoAdicionales obtenerDatosPresupuestoAdicionales(int clienteId) {
-    try (Connection conn = Conexion.conectar()) {
-        
-        String sql = """
-            SELECT 
-                numero_presupuesto,
-                estado,
-                plazos_pago,
-                metodo_pago,
-                valido_hasta,
-                observaciones
-            FROM presupuestos 
-            WHERE cliente_id = ? 
-            ORDER BY fecha_creacion DESC 
-            LIMIT 1
-            """;
-        
-        PreparedStatement stmt = conn.prepareStatement(sql);
-        stmt.setInt(1, clienteId);
-        ResultSet rs = stmt.executeQuery();
-        
-        if (rs.next()) {
-            DatosPresupuestoAdicionales datos = new DatosPresupuestoAdicionales();
-            datos.numeroPresupuesto = rs.getString("numero_presupuesto");
-            datos.estado = rs.getString("estado");
-            datos.plazos = rs.getString("plazos_pago");
-            datos.metodoPago = rs.getString("metodo_pago");
-            
-            java.sql.Date validoHastaSQL = rs.getDate("valido_hasta");
-            if (validoHastaSQL != null) {
-                datos.validoHasta = validoHastaSQL.toLocalDate();
-            }
-            
-            datos.observaciones = rs.getString("observaciones");
-            return datos;
-        }
-        
-    } catch (SQLException e) {
-        System.err.println("❌ Error al obtener datos adicionales: " + e.getMessage());
-    }
-    
-    return null;
-}
-
     // MÉTODOS PARA ENVÍO DE EMAIL 
 
    @FXML 
@@ -885,27 +977,21 @@ private void enviarEmail() {
             
             if (rutaPDF == null) {
                 // No existe PDF, preguntar si quiere generar uno
-                // USAR EL NUEVO MÉTODO CON DOS OPCIONES
-                mostrarConfirmacionDosOpciones("📧 Enviar Email", 
-                                              "No se encontró PDF.\n\n¿Deseas generar y enviar?",
-                                              () -> {
-                                                  try {
-                                                      // Generar PDF primero
-                                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                                                      // Buscar la nueva ruta del PDF
-                                                      String nuevaRutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-                                                      if (nuevaRutaPDF != null) {
-                                                          enviarEmailConPDF(clienteActualmenteSeleccionado, nuevaRutaPDF);
-                                                      }
-                                                  } catch (Exception e) {
-                                                      mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
+                mostrarConfirmacionSimple("📧 Enviar Email", 
+                                          "No se encontró PDF.\n\n¿Deseas generar y enviar?",
+                                          () -> {
+                                              try {
+                                                  // Generar PDF primero
+                                                  generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+                                                  // Buscar la nueva ruta del PDF
+                                                  String nuevaRutaPDF = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
+                                                  if (nuevaRutaPDF != null) {
+                                                      enviarEmailConPDF(clienteActualmenteSeleccionado, nuevaRutaPDF);
                                                   }
-                                              },
-                                              () -> {
-                                                  // Cancelar - no hacer nada
-                                                  mostrarMensaje("Cancelado", "Envío de email cancelado", "#f39c12");
-                                              },
-                                              "🆕 Generar y Enviar", "✕ Cancelar");
+                                              } catch (Exception e) {
+                                                  mostrarMensaje("Error", "Error al generar PDF: " + e.getMessage(), "#e74c3c");
+                                              }
+                                          });
             } else {
                 // Ya existe PDF, enviarlo directamente
                 enviarEmailConPDF(clienteActualmenteSeleccionado, rutaPDF);
@@ -942,7 +1028,7 @@ private void enviarEmail() {
             
             // Texto del email
             MimeBodyPart textoParte = new MimeBodyPart();
-            String contenidoEmail = crearContenidoEmailCompleto(cliente); // ← USAR MÉTODO COMPLETO
+            String contenidoEmail = crearContenidoEmailCompleto(cliente);
             textoParte.setContent(contenidoEmail, "text/html; charset=utf-8");
             multipart.addBodyPart(textoParte);
             
@@ -993,42 +1079,359 @@ private void enviarEmail() {
     }
 
     private void registrarEnvioEmail(int clienteId, String emailDestinatario) {
-        // Registro simple en consola por ahora (comentado para evitar errores de BD)
-        /*
-        try (Connection conn = Conexion.conectar()) {
-            String sql = "UPDATE presupuestos SET ultimo_envio_email = NOW(), email_enviado_a = ? WHERE cliente_id = ?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, emailDestinatario);
-            stmt.setInt(2, clienteId);
-            stmt.executeUpdate();
-            System.out.println("✅ Registro de envío guardado en BD");
-        } catch (SQLException e) {
-            System.err.println("⚠️ Error al registrar envío: " + e.getMessage());
-        }
-        */
-        
         System.out.println("📧 Email enviado a: " + emailDestinatario + " (Cliente ID: " + clienteId + ")");
+    }
+
+    // ========== MÉTODOS CORREGIDOS PARA VER PDF ==========
+
+    @FXML 
+    private void verContratoPDF() {
+        if (clienteActualmenteSeleccionado != null) {
+            System.out.println("🔍 Buscando PDF para: " + clienteActualmenteSeleccionado.getNombreCompleto());
+            
+            try {
+                // PASO 1: Buscar en Desktop (donde se guardan los PDFs nuevos)
+                String rutaPDFDesktop = buscarPDFEnDesktop(clienteActualmenteSeleccionado);
+                
+                if (rutaPDFDesktop != null) {
+                    // PDF encontrado en Desktop
+                    System.out.println("✅ PDF encontrado en Desktop: " + rutaPDFDesktop);
+                    abrirPDF(rutaPDFDesktop);
+                    mostrarMensaje("PDF Abierto", "PDF abierto desde Desktop:\n" + 
+                                 new File(rutaPDFDesktop).getName(), "#27ae60");
+                    return;
+                }
+                
+                // PASO 2: Buscar en base de datos como BLOB
+                boolean pdfEnBD = verificarPDFEnBD(clienteActualmenteSeleccionado.getClienteId());
+                
+                if (pdfEnBD) {
+                    // PDF existe en BD, extraer y abrir
+                    System.out.println("✅ PDF encontrado en BD, extrayendo...");
+                    boolean extraido = extraerYAbrirPDFDesdeBD(clienteActualmenteSeleccionado);
+                    
+                    if (extraido) {
+                        mostrarMensaje("PDF Abierto", "PDF extraído desde base de datos y abierto correctamente", "#27ae60");
+                        return;
+                    }
+                }
+                
+                // PASO 3: No existe PDF, preguntar si generar uno nuevo
+                mostrarConfirmacionSimple("📄 Generar PDF", 
+                                         "No se encontró PDF para este cliente.\n\n" +
+                                         "¿Deseas generar un presupuesto completo?",
+                                         () -> {
+                                             generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
+                                         });
+                
+            } catch (Exception e) {
+                System.err.println("❌ Error al buscar PDF: " + e.getMessage());
+                mostrarMensaje("Error", "Error al buscar PDF: " + e.getMessage(), "#e74c3c");
+            }
+        } else {
+            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
+        }
+    }
+
+    // ========== MÉTODO NUEVO: BUSCAR PDF EN DESKTOP ==========
+    private String buscarPDFEnDesktop(ClienteContrato cliente) {
+    try {
+        // Lista de ubicaciones posibles en Desktop
+        String[] rutasDesktop = {
+            System.getProperty("user.home") + "/Desktop/Presupuestos",
+            System.getProperty("user.home") + "\\Desktop\\Presupuestos",
+            "Presupuestos", // Carpeta local
+            System.getProperty("user.dir") + "/Presupuestos"
+        };
+        
+        String nombreCliente = cliente.getNombreCompleto()
+            .replaceAll("[^a-zA-Z0-9\\s]", "") // Remover caracteres especiales
+            .replaceAll("\\s+", "_")           // Reemplazar espacios con _
+            .trim();
+        
+        if (nombreCliente.isEmpty()) {
+            nombreCliente = "Cliente_Sin_Nombre";
+        }
+        
+        System.out.println("🔍 Buscando PDF ESPECÍFICO para cliente: " + nombreCliente);
+        System.out.println("🔍 Cliente ID: " + cliente.getClienteId());
+        
+        // Buscar en cada ubicación posible
+        for (String rutaBase : rutasDesktop) {
+            File carpeta = new File(rutaBase);
+            
+            if (!carpeta.exists()) {
+                System.out.println("📁 Carpeta no existe: " + rutaBase);
+                continue;
+            }
+            
+            System.out.println("📁 Buscando en: " + carpeta.getAbsolutePath());
+            
+            // Listar todos los archivos PDF en la carpeta
+            File[] archivos = carpeta.listFiles((dir, name) -> 
+                name.toLowerCase().endsWith(".pdf"));
+            
+            if (archivos == null || archivos.length == 0) {
+                System.out.println("📄 No hay PDFs en: " + rutaBase);
+                continue;
+            }
+            
+            System.out.println("📄 Encontrados " + archivos.length + " PDFs en la carpeta");
+            
+            // ⭐ BÚSQUEDA MÁS ESPECÍFICA - SOLO COINCIDENCIA EXACTA
+            for (File archivo : archivos) {
+                String nombreArchivo = archivo.getName().toLowerCase();
+                String nombreClienteLower = nombreCliente.toLowerCase();
+                
+                System.out.println("🔍 Comparando archivo: " + archivo.getName());
+                System.out.println("🔍 Con cliente: " + nombreCliente);
+                
+                // ✅ PATRÓN 1: Coincidencia EXACTA con nombre completo
+                if (nombreArchivo.contains(nombreClienteLower)) {
+                    System.out.println("✅ COINCIDENCIA EXACTA por nombre completo: " + archivo.getName());
+                    
+                    if (archivo.exists() && archivo.canRead()) {
+                        System.out.println("🎯 PDF ESPECÍFICO encontrado: " + archivo.getAbsolutePath());
+                        return archivo.getAbsolutePath();
+                    }
+                }
+                
+                // ✅ PATRÓN 2: Coincidencia por TODAS las palabras del nombre
+                String[] palabrasCliente = nombreClienteLower.split("_");
+                if (palabrasCliente.length >= 2) { // Al menos nombre y apellido
+                    boolean todasLasPalabrasCoinciden = true;
+                    
+                    for (String palabra : palabrasCliente) {
+                        if (palabra.length() > 2 && !nombreArchivo.contains(palabra)) {
+                            todasLasPalabrasCoinciden = false;
+                            break;
+                        }
+                    }
+                    
+                    if (todasLasPalabrasCoinciden) {
+                        System.out.println("✅ COINCIDENCIA COMPLETA por todas las palabras: " + archivo.getName());
+                        
+                        if (archivo.exists() && archivo.canRead()) {
+                            System.out.println("🎯 PDF ESPECÍFICO encontrado: " + archivo.getAbsolutePath());
+                            return archivo.getAbsolutePath();
+                        }
+                    }
+                }
+            }
+            
+            System.out.println("❌ No se encontró PDF específico para: " + nombreCliente + " en " + rutaBase);
+        }
+        
+        System.out.println("❌ NO se encontró PDF específico en Desktop para: " + nombreCliente);
+        return null;
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error buscando PDF específico en Desktop: " + e.getMessage());
+        return null;
+    }
+}
+
+private boolean verificarPDFCorrespondeAlCliente(String rutaPDF, ClienteContrato cliente) {
+    try {
+        String nombreArchivo = new File(rutaPDF).getName().toLowerCase();
+        String nombreCliente = cliente.getNombreCompleto()
+            .replaceAll("[^a-zA-Z0-9\\s]", "")
+            .replaceAll("\\s+", "_")
+            .toLowerCase();
+        
+        System.out.println("🔍 Verificando correspondencia:");
+        System.out.println("   Archivo: " + nombreArchivo);
+        System.out.println("   Cliente: " + nombreCliente);
+        
+        // Verificar que TODAS las palabras del nombre del cliente están en el archivo
+        String[] palabrasCliente = nombreCliente.split("_");
+        int coincidencias = 0;
+        
+        for (String palabra : palabrasCliente) {
+            if (palabra.length() > 2 && nombreArchivo.contains(palabra)) {
+                coincidencias++;
+                System.out.println("   ✅ Palabra encontrada: " + palabra);
+            } else if (palabra.length() > 2) {
+                System.out.println("   ❌ Palabra NO encontrada: " + palabra);
+            }
+        }
+        
+        // Debe coincidir al menos el 80% de las palabras significativas
+        int palabrasSignificativas = (int) java.util.Arrays.stream(palabrasCliente)
+            .filter(p -> p.length() > 2)
+            .count();
+            
+        double porcentajeCoincidencia = (double) coincidencias / palabrasSignificativas;
+        
+        System.out.println("   Coincidencias: " + coincidencias + "/" + palabrasSignificativas + 
+                          " (" + String.format("%.1f", porcentajeCoincidencia * 100) + "%)");
+        
+        boolean corresponde = porcentajeCoincidencia >= 0.8; // Al menos 80% de coincidencia
+        
+        if (corresponde) {
+            System.out.println("   ✅ PDF CORRESPONDE al cliente");
+        } else {
+            System.out.println("   ❌ PDF NO CORRESPONDE al cliente");
+        }
+        
+        return corresponde;
+        
+    } catch (Exception e) {
+        System.err.println("❌ Error verificando correspondencia de PDF: " + e.getMessage());
+        return false;
+    }
+}
+    // ========== MÉTODO MEJORADO: EXTRAER Y ABRIR PDF DESDE BD ==========
+    private boolean extraerYAbrirPDFDesdeBD(ClienteContrato cliente) {
+        try (Connection conn = Conexion.conectar()) {
+            
+            String sql = "SELECT archivo_pdf_contenido, nombre_archivo_pdf FROM presupuestos " +
+                        "WHERE cliente_id = ? AND archivo_pdf_contenido IS NOT NULL " +
+                        "ORDER BY fecha_creacion DESC LIMIT 1";
+            
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, cliente.getClienteId());
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+                String nombreArchivo = rs.getString("nombre_archivo_pdf");
+                
+                if (pdfBytes != null && pdfBytes.length > 0) {
+                    System.out.println("✅ PDF encontrado en BD: " + pdfBytes.length + " bytes");
+                    
+                    // Crear carpeta temporal
+                    String rutaTemp = System.getProperty("java.io.tmpdir") + File.separator + "PresupuestosPDFs";
+                    File carpetaTemp = new File(rutaTemp);
+                    carpetaTemp.mkdirs();
+                    
+                    // Generar nombre si no existe
+                    if (nombreArchivo == null || nombreArchivo.trim().isEmpty()) {
+                        String nombreCliente = cliente.getNombreCompleto().replaceAll("[^a-zA-Z0-9\\s]", "").replaceAll("\\s+", "_");
+                        nombreArchivo = "Presupuesto_" + nombreCliente + "_" + 
+                                       java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")) + ".pdf";
+                    }
+                    
+                    // Crear archivo temporal
+                    File archivoTemp = new File(carpetaTemp, nombreArchivo);
+                    
+                    // Escribir bytes al archivo
+                    java.nio.file.Files.write(archivoTemp.toPath(), pdfBytes);
+                    
+                    System.out.println("✅ PDF extraído a: " + archivoTemp.getAbsolutePath());
+                    
+                    // Abrir el archivo
+                    if (Desktop.isDesktopSupported()) {
+                        Desktop.getDesktop().open(archivoTemp);
+                        
+                        // Programar eliminación después de 10 minutos
+                        programarEliminacionTemporal(archivoTemp, 10);
+                        
+                        return true;
+                    } else {
+                        System.err.println("❌ Desktop no soportado en este sistema");
+                        mostrarMensaje("PDF Extraído", 
+                                      "PDF extraído pero no se puede abrir automáticamente.\n" +
+                                      "Ubicación: " + archivoTemp.getAbsolutePath(), "#f39c12");
+                        return false;
+                    }
+                }
+            }
+            
+            return false;
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error extrayendo PDF desde BD: " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ========== MÉTODO AUXILIAR: PROGRAMAR ELIMINACIÓN TEMPORAL ==========
+    private void programarEliminacionTemporal(File archivo, int minutos) {
+        Timer timer = new Timer(true); // Timer daemon
+        timer.schedule(new java.util.TimerTask() {
+            @Override
+            public void run() {
+                try {
+                    if (archivo.exists()) {
+                        boolean eliminado = archivo.delete();
+                        if (eliminado) {
+                            System.out.println("🗑️ Archivo temporal eliminado: " + archivo.getName());
+                        } else {
+                            System.out.println("⚠️ No se pudo eliminar: " + archivo.getName());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("❌ Error eliminando temporal: " + e.getMessage());
+                }
+            }
+        }, minutos * 60 * 1000L); // Convertir minutos a milisegundos
+    }
+
+    // ========== MÉTODO AUXILIAR: VERIFICAR PDF EN BD ==========
+    private boolean verificarPDFEnBD(int clienteId) {
+        try (Connection conn = Conexion.conectar()) {
+            String sql = "SELECT archivo_pdf_contenido FROM presupuestos " +
+                        "WHERE cliente_id = ? AND archivo_pdf_contenido IS NOT NULL " +
+                        "ORDER BY fecha_creacion DESC LIMIT 1";
+            
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            stmt.setInt(1, clienteId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
+                return pdfBytes != null && pdfBytes.length > 0;
+            }
+            
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error verificando PDF en BD: " + e.getMessage());
+            return false;
+        }
     }
 
     // ========== MÉTODOS PARA BOTONES DE ACCIÓN ==========
 
     @FXML
 private void limpiarPresupuestosManual() {
-    // USAR EL MÉTODO SIMPLE
     mostrarConfirmacionSimple("🧹 Confirmar Limpieza", 
-                             "Se eliminarán presupuestos con más de 1 mes.\n\n⚠️ Esta acción NO se puede deshacer.",
+                             "Se eliminarán presupuestos con más de 30 días.\n\n" + // ⭐ CORREGIDO
+                             "⚠️ Esta acción NO se puede deshacer.\n\n" +
+                             "Los contratos firmados NO se eliminarán.",
                              () -> {
                                  limpiarPresupuestosVencidos();
                                  cargarDatos();
-                                 mostrarMensaje("Éxito", "Presupuestos vencidos eliminados correctamente", "#27ae60");
+                                 mostrarMensaje("Éxito", "Presupuestos vencidos (>30 días) eliminados correctamente", "#27ae60");
                              });
 }
 
     @FXML
     private void actualizarDatos() {
         System.out.println("🔄 Actualizando presupuestos...");
+        
+        // Debug básico en consola
+        try (Connection conn = Conexion.conectar()) {
+            // Verificar presupuestos recientes
+            String sql = "SELECT COUNT(*) as total FROM presupuestos WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 DAY)";
+            PreparedStatement stmt = conn.prepareStatement(sql);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                int total = rs.getInt("total");
+                System.out.println("📊 Presupuestos del último día: " + total);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("❌ Error verificando presupuestos: " + e.getMessage());
+        }
+        
+        // Limpiar y recargar
         limpiarPresupuestosVencidos();
         cargarDatos();
+        
+        System.out.println("✅ Actualización completada");
         mostrarMensaje("Éxito", "Presupuestos actualizados correctamente", "#27ae60");
     }
 
@@ -1222,227 +1625,20 @@ private String obtenerExtrasDetalleDesdeBD(int clienteId) {
     
     return null;
 }
-    
-    // ========== MÉTODO AUXILIAR: VERIFICAR PDF EN BD ==========
-private boolean verificarPDFEnBD(int clienteId) {
-    try (Connection conn = Conexion.conectar()) {
-        String sql = "SELECT archivo_pdf_contenido FROM presupuestos " +
-                    "WHERE cliente_id = ? AND archivo_pdf_contenido IS NOT NULL " +
-                    "ORDER BY fecha_creacion DESC LIMIT 1";
-        
-        PreparedStatement stmt = conn.prepareStatement(sql);
-        stmt.setInt(1, clienteId);
-        ResultSet rs = stmt.executeQuery();
-        
-        if (rs.next()) {
-            byte[] pdfBytes = rs.getBytes("archivo_pdf_contenido");
-            return pdfBytes != null && pdfBytes.length > 0;
-        }
-        
-        return false;
-        
-    } catch (SQLException e) {
-        System.err.println("❌ Error verificando PDF en BD: " + e.getMessage());
-        return false;
-    }
-}
 
     @FXML 
-private void verContratoPDF() {
-    if (clienteActualmenteSeleccionado != null) {
-        try {
-            // OPCIÓN 1: Verificar si existe PDF en BD (como BLOB)
-            boolean pdfEnBD = verificarPDFEnBD(clienteActualmenteSeleccionado.getClienteId());
-            
-            if (pdfEnBD) {
-                // PDF existe en BD, preguntar qué hacer
-                mostrarConfirmacion("📄 PDF Disponible", 
-                                  "Este cliente tiene PDF guardado en la base de datos.\n\n" +
-                                  "¿Qué deseas hacer?",
-                                  () -> {
-                                      // Descargar desde BD y abrir
-                                      boolean exito = descargarPDFPresupuestoDesdeBD(
-                                          clienteActualmenteSeleccionado.getClienteId(), 
-                                          "Presupuestos/"
-                                      );
-                                      if (exito) {
-                                          // Buscar el archivo descargado y abrirlo
-                                          String rutaPDFDescargado = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-                                          if (rutaPDFDescargado != null) {
-                                              abrirPDF(rutaPDFDescargado);
-                                              mostrarMensaje("PDF Abierto", "PDF descargado de la base de datos y abierto correctamente", "#27ae60");
-                                          }
-                                      }
-                                  },
-                                  () -> {
-                                      // Generar nuevo PDF
-                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                                  },
-                                  "📥 Descargar de BD", "🆕 Generar Nuevo");
-                return;
-            }
-            
-            // OPCIÓN 2: Verificar si existe PDF local
-            String rutaPDFExistente = buscarPDFExistente(clienteActualmenteSeleccionado.getClienteId());
-            
-            if (rutaPDFExistente != null) {
-                // Ya existe un PDF local, preguntarle al usuario qué hacer
-                mostrarConfirmacion("📄 PDF Local Existente", 
-                                  "Ya existe un PDF local para este cliente.\n\n" +
-                                  "¿Qué deseas hacer?",
-                                  () -> {
-                                      // Abrir PDF existente
-                                      abrirPDF(rutaPDFExistente);
-                                      mostrarMensaje("PDF Abierto", "PDF existente abierto correctamente", "#27ae60");
-                                  },
-                                  () -> {
-                                      // Generar nuevo PDF
-                                      generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-                                  },
-                                  "📂 Abrir Existente", "🆕 Generar Nuevo");
-            } else {
-                // No existe PDF, generar uno nuevo
-                generarPDFPresupuestoCompleto(clienteActualmenteSeleccionado);
-            }
-            
-        } catch (Exception e) {
-            mostrarMensaje("Error", "Error al procesar PDF: " + e.getMessage(), "#e74c3c");
-        }
-    } else {
-        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
-    }
-}
-
-// ========== MÉTODO 1: CONFIRMACIÓN CON DOS OPCIONES ==========
-private void mostrarConfirmacionDosOpciones(String titulo, String mensaje, Runnable accion1, Runnable accion2, String textoBoton1, String textoBoton2) {
-    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-        lblTituloMensaje.setText(titulo);
-        lblTituloMensaje.getStyleClass().clear();
-        lblTituloMensaje.getStyleClass().add("titulo-dialogo");
-        
-        contenedorMensajes.getChildren().clear();
-        
-        VBox tarjetaConfirmacion = new VBox();
-        tarjetaConfirmacion.getStyleClass().add("tarjeta-confirmacion");
-
-        Label lblMensaje = new Label(mensaje);
-        lblMensaje.getStyleClass().add("mensaje-dialogo");
-
-        VBox contenedorBotones = new VBox();
-        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
-        
-        Button btn1 = new Button(textoBoton1.length() > 15 ? textoBoton1.substring(0, 15) + "..." : textoBoton1);
-        if (textoBoton1.contains("Descargar")) {
-            btn1.setText("📥 Descargar");
-            btn1.getStyleClass().add("btn-descargar-bd");
-        } else if (textoBoton1.contains("Abrir")) {
-            btn1.setText("📂 Abrir");
-            btn1.getStyleClass().add("btn-abrir-existente");
+    private void eliminarSeleccionado() {
+        if (clienteActualmenteSeleccionado != null) {
+            mostrarConfirmacionSimple("🗑️ Confirmar Eliminación",
+                                     "¿Eliminar el presupuesto de:\n\n" +
+                                     "👤 " + clienteActualmenteSeleccionado.getNombreCompleto() + "\n" +
+                                     "💰 " + clienteActualmenteSeleccionado.getMontoTotal() + "\n\n" +
+                                     "⚠️ Esta acción NO se puede deshacer.",
+                                     () -> eliminarPresupuestoCliente(clienteActualmenteSeleccionado));
         } else {
-            btn1.setText("🆕 Generar");
-            btn1.getStyleClass().add("btn-generar-nuevo");
+            mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
         }
-        btn1.setOnAction(e -> {
-            accion1.run();
-            cerrarMensajes();
-        });
-        
-        Button btn2 = new Button(textoBoton2.length() > 15 ? textoBoton2.substring(0, 15) + "..." : textoBoton2);
-        if (textoBoton2.contains("Generar")) {
-            btn2.setText("🆕 Generar");
-            btn2.getStyleClass().add("btn-generar-nuevo");
-        } else {
-            btn2.setText("📂 Abrir");
-            btn2.getStyleClass().add("btn-abrir-existente");
-        }
-        btn2.setOnAction(e -> {
-            accion2.run();
-            cerrarMensajes();
-        });
-        
-        Button btnCancelar = new Button("✕ Cancelar");
-        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
-        btnCancelar.setOnAction(e -> cerrarMensajes());
-        
-        contenedorBotones.getChildren().addAll(btn1, btn2, btnCancelar);
-
-        Separator separador = new Separator();
-        separador.getStyleClass().add("separador-dialogo");
-        
-        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, contenedorBotones);
-        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
-        
-        tarjetaConfirmacion.setMaxHeight(-1);
-        tarjetaConfirmacion.setMaxWidth(300);
-        tarjetaConfirmacion.setPrefWidth(300);
-        
-        panelMensajes.setVisible(true);
-        
-        System.out.println("✅ Confirmación dos opciones mostrada: " + titulo);
     }
-}
-
-// ========== MÉTODO 2: CONFIRMACIÓN SIMPLE (SÍ/NO) ==========
-private void mostrarConfirmacionSimple(String titulo, String mensaje, Runnable accionConfirmar) {
-    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-        lblTituloMensaje.setText(titulo);
-        lblTituloMensaje.getStyleClass().clear();
-        lblTituloMensaje.getStyleClass().add("titulo-dialogo-eliminar");
-        
-        contenedorMensajes.getChildren().clear();
-        
-        VBox tarjetaConfirmacion = new VBox();
-        tarjetaConfirmacion.getStyleClass().add("tarjeta-eliminar");
-
-        Label lblMensaje = new Label(mensaje);
-        lblMensaje.getStyleClass().add("mensaje-dialogo");
-
-        HBox botones = new HBox();
-        botones.getStyleClass().add("contenedor-botones-horizontal");
-        
-        Button btnConfirmar = new Button("✓ Confirmar");
-        btnConfirmar.getStyleClass().add("btn-confirmar-dialogo");
-        btnConfirmar.setOnAction(e -> {
-            accionConfirmar.run();
-            cerrarMensajes();
-        });
-        
-        Button btnCancelar = new Button("✕ Cancelar");
-        btnCancelar.getStyleClass().add("btn-cancelar-horizontal");
-        btnCancelar.setOnAction(e -> cerrarMensajes());
-        
-        botones.getChildren().addAll(btnConfirmar, btnCancelar);
-
-        Separator separador = new Separator();
-        separador.getStyleClass().add("separador-dialogo");
-
-        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, botones);
-        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
-        
-        tarjetaConfirmacion.setMaxHeight(-1);
-        tarjetaConfirmacion.setMaxWidth(300);
-        tarjetaConfirmacion.setPrefWidth(300);
-        
-        panelMensajes.setVisible(true);
-        
-        System.out.println("✅ Confirmación simple mostrada: " + titulo);
-    }
-}
-
-    @FXML 
-private void eliminarSeleccionado() {
-    if (clienteActualmenteSeleccionado != null) {
-        // USAR EL MÉTODO SIMPLE
-        mostrarConfirmacionSimple("🗑️ Confirmar Eliminación",
-                                 "¿Eliminar el presupuesto de:\n\n" +
-                                 "👤 " + clienteActualmenteSeleccionado.getNombreCompleto() + "\n" +
-                                 "💰 " + clienteActualmenteSeleccionado.getMontoTotal() + "\n\n" +
-                                 "⚠️ Esta acción NO se puede deshacer.",
-                                 () -> eliminarPresupuestoCliente(clienteActualmenteSeleccionado));
-    } else {
-        mostrarMensaje("Atención", "Selecciona un cliente de la tabla", "#f39c12");
-    }
-}
 
     private void eliminarPresupuestoCliente(ClienteContrato cliente) {
         try (Connection conn = Conexion.conectar()) {
@@ -1594,136 +1790,47 @@ private void eliminarSeleccionado() {
         }
     }
 
-   private void mostrarDialogoPDF(ClienteContrato cliente) {
-    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-        lblTituloMensaje.setText("📄 PDF Disponible");
-        lblTituloMensaje.getStyleClass().clear();
-        lblTituloMensaje.getStyleClass().add("titulo-dialogo-pdf");
-        
-        contenedorMensajes.getChildren().clear();
-        
-        VBox tarjetaPDF = new VBox();
-        tarjetaPDF.getStyleClass().add("tarjeta-pdf");
+    // ========== MÉTODO: CONFIRMACIÓN SIMPLE (SÍ/NO) ==========
+    private void mostrarConfirmacionSimple(String titulo, String mensaje, Runnable accionConfirmar) {
+        if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
+            lblTituloMensaje.setText(titulo);
+            lblTituloMensaje.setStyle("-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #e74c3c;");
+            
+            contenedorMensajes.getChildren().clear();
+            
+            VBox tarjetaConfirmacion = new VBox(15);
+            tarjetaConfirmacion.setStyle("-fx-background-color: rgba(255, 255, 255, 0.95); " +
+                                       "-fx-background-radius: 15px; " +
+                                       "-fx-padding: 20px; " +
+                                       "-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.15), 8, 0, 0, 3); " +
+                                       "-fx-border-color: #e74c3c; -fx-border-width: 2px; -fx-border-radius: 15px;");
 
-        Label lblMensaje = new Label("PDF guardado en BD.\n\n¿Qué deseas hacer?");
-        lblMensaje.getStyleClass().add("mensaje-dialogo");
+            Label lblMensaje = new Label(mensaje);
+            lblMensaje.setStyle("-fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+            lblMensaje.setWrapText(true);
 
-        VBox contenedorBotones = new VBox();
-        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
-        
-        Button btnDescargar = new Button("📥 Descargar de BD");
-        btnDescargar.getStyleClass().add("btn-descargar-bd");
-        btnDescargar.setOnAction(e -> {
-            boolean exito = descargarPDFPresupuestoDesdeBD(cliente.getClienteId(), "Presupuestos/");
-            if (exito) {
-                String rutaPDFDescargado = buscarPDFExistente(cliente.getClienteId());
-                if (rutaPDFDescargado != null) {
-                    abrirPDF(rutaPDFDescargado);
-                    mostrarMensaje("PDF Abierto", "PDF abierto correctamente", "#27ae60");
-                }
-            }
-            cerrarMensajes();
-        });
-        
-        Button btnGenerar = new Button("🆕 Generar Nuevo");
-        btnGenerar.getStyleClass().add("btn-generar-nuevo");
-        btnGenerar.setOnAction(e -> {
-            generarPDFPresupuestoCompleto(cliente);
-            cerrarMensajes();
-        });
-        
-        Button btnCancelar = new Button("✕ Cancelar");
-        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
-        btnCancelar.setOnAction(e -> cerrarMensajes());
-        
-        contenedorBotones.getChildren().addAll(btnDescargar, btnGenerar, btnCancelar);
+            HBox botones = new HBox(10);
+            botones.setStyle("-fx-alignment: center;");
+            
+            Button btnConfirmar = new Button("✓ Confirmar");
+            btnConfirmar.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 8px;");
+            btnConfirmar.setOnAction(e -> {
+                accionConfirmar.run();
+                cerrarMensajes();
+            });
+            
+            Button btnCancelar = new Button("✕ Cancelar");
+            btnCancelar.setStyle("-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 8px;");
+            btnCancelar.setOnAction(e -> cerrarMensajes());
+            
+            botones.getChildren().addAll(btnConfirmar, btnCancelar);
 
-        Separator separador = new Separator();
-        separador.getStyleClass().add("separador-dialogo");
-
-        tarjetaPDF.getChildren().addAll(lblMensaje, separador, contenedorBotones);
-        contenedorMensajes.getChildren().add(tarjetaPDF);
-        
-        // CONFIGURACIÓN SIMPLIFICADA SIN REGION
-        tarjetaPDF.setMaxHeight(-1);
-        tarjetaPDF.setMaxWidth(300);
-        tarjetaPDF.setPrefWidth(300);
-        
-        panelMensajes.setVisible(true);
-        
-        System.out.println("✅ Diálogo PDF mostrado para: " + cliente.getNombreCompleto());
-    }
-}
-
-
-    private void mostrarConfirmacion(String titulo, String mensaje, Runnable accion1, Runnable accion2, String textoBoton1, String textoBoton2) {
-    if (panelMensajes != null && lblTituloMensaje != null && contenedorMensajes != null) {
-        lblTituloMensaje.setText(titulo);
-        lblTituloMensaje.getStyleClass().clear();
-        lblTituloMensaje.getStyleClass().add("titulo-dialogo");
-        
-        contenedorMensajes.getChildren().clear();
-        
-        VBox tarjetaConfirmacion = new VBox();
-        tarjetaConfirmacion.getStyleClass().add("tarjeta-confirmacion");
-
-        Label lblMensaje = new Label(mensaje);
-        lblMensaje.getStyleClass().add("mensaje-dialogo");
-
-        VBox contenedorBotones = new VBox();
-        contenedorBotones.getStyleClass().add("contenedor-botones-vertical");
-        
-        Button btn1 = new Button(textoBoton1.length() > 15 ? textoBoton1.substring(0, 15) + "..." : textoBoton1);
-        if (textoBoton1.contains("Descargar")) {
-            btn1.setText("📥 Descargar");
-            btn1.getStyleClass().add("btn-descargar-bd");
-        } else if (textoBoton1.contains("Abrir")) {
-            btn1.setText("📂 Abrir");
-            btn1.getStyleClass().add("btn-abrir-existente");
-        } else {
-            btn1.setText("🆕 Generar");
-            btn1.getStyleClass().add("btn-generar-nuevo");
+            tarjetaConfirmacion.getChildren().addAll(lblMensaje, botones);
+            contenedorMensajes.getChildren().add(tarjetaConfirmacion);
+            
+            panelMensajes.setVisible(true);
         }
-        btn1.setOnAction(e -> {
-            accion1.run();
-            cerrarMensajes();
-        });
-        
-        Button btn2 = new Button(textoBoton2.length() > 15 ? textoBoton2.substring(0, 15) + "..." : textoBoton2);
-        if (textoBoton2.contains("Generar")) {
-            btn2.setText("🆕 Generar");
-            btn2.getStyleClass().add("btn-generar-nuevo");
-        } else {
-            btn2.setText("📂 Abrir");
-            btn2.getStyleClass().add("btn-abrir-existente");
-        }
-        btn2.setOnAction(e -> {
-            accion2.run();
-            cerrarMensajes();
-        });
-        
-        Button btnCancelar = new Button("✕ Cancelar");
-        btnCancelar.getStyleClass().add("btn-cancelar-dialogo");
-        btnCancelar.setOnAction(e -> cerrarMensajes());
-        
-        contenedorBotones.getChildren().addAll(btn1, btn2, btnCancelar);
-
-        Separator separador = new Separator();
-        separador.getStyleClass().add("separador-dialogo");
-        
-        tarjetaConfirmacion.getChildren().addAll(lblMensaje, separador, contenedorBotones);
-        contenedorMensajes.getChildren().add(tarjetaConfirmacion);
-        
-        // CONFIGURACIÓN SIMPLIFICADA SIN REGION
-        tarjetaConfirmacion.setMaxHeight(-1);
-        tarjetaConfirmacion.setMaxWidth(300);
-        tarjetaConfirmacion.setPrefWidth(300);
-        
-        panelMensajes.setVisible(true);
-        
-        System.out.println("✅ Confirmación mostrada: " + titulo);
     }
-}
 
     @FXML
     private void cerrarMensajes() {
@@ -1732,7 +1839,7 @@ private void eliminarSeleccionado() {
         }
     }
 
-    // CLASE INTERNA PARA DATOS COMPLETOS (ya existe en tu código)
+    // CLASE INTERNA PARA DATOS COMPLETOS
     private static class DatosPresupuestoCompleto {
         int presupuestoId;
         java.sql.Date fechaCreacion;
@@ -1744,5 +1851,4 @@ private void eliminarSeleccionado() {
         double total;
         List<Extra> extras;
     }
-
 }

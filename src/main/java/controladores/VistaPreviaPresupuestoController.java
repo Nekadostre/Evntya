@@ -25,6 +25,7 @@ import modelos.SesionTemporal;
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.util.Optional;
+import java.awt.Desktop;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -119,6 +120,100 @@ public class VistaPreviaPresupuestoController implements Initializable {
             configurarValoresPorDefecto();
         }
     }
+    
+    // ========== MÉTODO DE DEBUG: VERIFICAR PRESUPUESTOS EN BD ==========
+private void debugVerificarPresupuestosEnBD() {
+    try (Connection conn = Conexion.conectar()) {
+        System.out.println("🔍 === DEBUG: VERIFICANDO PRESUPUESTOS EN BASE DE DATOS ===");
+        
+        String sql = """
+            SELECT 
+                p.id,
+                p.cliente_id,
+                p.cliente_nombre,
+                p.numero_presupuesto,
+                p.fecha_creacion,
+                p.total_general,
+                p.nombre_archivo_pdf,
+                p.ruta_archivo_pdf,
+                CASE 
+                    WHEN p.archivo_pdf_contenido IS NOT NULL THEN 'SÍ'
+                    ELSE 'NO'
+                END as tiene_pdf_blob,
+                LENGTH(p.archivo_pdf_contenido) as tamaño_pdf
+            FROM presupuestos p
+            WHERE p.fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 DAY)
+            ORDER BY p.fecha_creacion DESC
+            LIMIT 10
+            """;
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        ResultSet rs = stmt.executeQuery();
+        
+        int contador = 0;
+        while (rs.next()) {
+            contador++;
+            System.out.println("📋 PRESUPUESTO #" + contador);
+            System.out.println("   ID: " + rs.getInt("id"));
+            System.out.println("   Cliente ID: " + rs.getInt("cliente_id"));
+            System.out.println("   Cliente: " + rs.getString("cliente_nombre"));
+            System.out.println("   Número: " + rs.getString("numero_presupuesto"));
+            System.out.println("   Fecha: " + rs.getTimestamp("fecha_creacion"));
+            System.out.println("   Total: $" + rs.getDouble("total_general"));
+            System.out.println("   Nombre PDF: " + rs.getString("nombre_archivo_pdf"));
+            System.out.println("   Ruta PDF: " + rs.getString("ruta_archivo_pdf"));
+            System.out.println("   Tiene PDF BLOB: " + rs.getString("tiene_pdf_blob"));
+            
+            Object tamaño = rs.getObject("tamaño_pdf");
+            if (tamaño != null) {
+                System.out.println("   Tamaño PDF: " + tamaño + " bytes");
+            } else {
+                System.out.println("   Tamaño PDF: NULL");
+            }
+            System.out.println("   ─────────────────────");
+        }
+        
+        if (contador == 0) {
+            System.out.println("❌ NO SE ENCONTRARON PRESUPUESTOS RECIENTES");
+            
+            // Verificar si existen presupuestos en general
+            String sqlTotal = "SELECT COUNT(*) as total FROM presupuestos";
+            PreparedStatement stmtTotal = conn.prepareStatement(sqlTotal);
+            ResultSet rsTotal = stmtTotal.executeQuery();
+            
+            if (rsTotal.next()) {
+                int total = rsTotal.getInt("total");
+                System.out.println("📊 Total de presupuestos en BD: " + total);
+                
+                if (total > 0) {
+                    // Mostrar los últimos 3 presupuestos sin filtro de fecha
+                    String sqlUltimos = """
+                        SELECT cliente_nombre, fecha_creacion, total_general 
+                        FROM presupuestos 
+                        ORDER BY fecha_creacion DESC 
+                        LIMIT 3
+                        """;
+                    PreparedStatement stmtUltimos = conn.prepareStatement(sqlUltimos);
+                    ResultSet rsUltimos = stmtUltimos.executeQuery();
+                    
+                    System.out.println("📋 Últimos presupuestos:");
+                    while (rsUltimos.next()) {
+                        System.out.println("   • " + rsUltimos.getString("cliente_nombre") + 
+                                         " - " + rsUltimos.getTimestamp("fecha_creacion") + 
+                                         " - $" + rsUltimos.getDouble("total_general"));
+                    }
+                }
+            }
+        } else {
+            System.out.println("✅ ENCONTRADOS " + contador + " PRESUPUESTOS RECIENTES");
+        }
+        
+        System.out.println("🔍 === FIN DEBUG PRESUPUESTOS ===");
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error en debug presupuestos: " + e.getMessage());
+    }
+}
 
     private void configurarListaExtras() {
         try {
@@ -571,14 +666,16 @@ public class VistaPreviaPresupuestoController implements Initializable {
         }
     }
 
-    // MÉTODO MEJORADO: GENERAR PDF CON MEJOR MANEJO DE ERRORES
+ // === MÉTODO COMPLETO: GENERAR PDF ===
+// REEMPLAZA COMPLETAMENTE EL MÉTODO generarPDF() en VistaPreviaPresupuestoController.java
+
 private boolean generarPDF() {
-    System.out.println("VistaPreviaController: 🔄 Iniciando generación de PDF...");
+    System.out.println("VistaPreviaController: 🔄 Iniciando generación de PDF COMPLETA...");
     
     try {
         SesionTemporal sesion = SesionTemporal.getInstancia();
         
-        // Verificar que tenemos todos los datos necesarios
+        // Verificaciones previas
         if (sesion == null) {
             System.err.println("❌ SesionTemporal es null");
             mostrarAlerta("Error: No se encontraron datos de la sesión", Alert.AlertType.ERROR);
@@ -597,29 +694,20 @@ private boolean generarPDF() {
             return false;
         }
         
-        // Crear carpeta si no existe con mejor manejo de errores
-        File carpeta = new File("Presupuestos");
-        if (!carpeta.exists()) {
-            boolean carpetaCreada = carpeta.mkdirs();
-            if (!carpetaCreada) {
-                System.err.println("❌ No se pudo crear la carpeta Presupuestos");
-                mostrarAlerta("Error: No se pudo crear la carpeta de destino", Alert.AlertType.ERROR);
-                return false;
-            }
-            System.out.println("✅ Carpeta 'Presupuestos' creada");
-        }
-        
-        // Verificar permisos de escritura
-        if (!carpeta.canWrite()) {
-            System.err.println("❌ No hay permisos de escritura en la carpeta Presupuestos");
-            mostrarAlerta("Error: Sin permisos de escritura en carpeta de destino", Alert.AlertType.ERROR);
+        // Verificar y crear carpeta
+        verificarRutaDesktop();
+        File carpeta = crearCarpetaPresupuestos();
+        if (carpeta == null) {
+            System.err.println("❌ No se pudo crear carpeta para PDF");
             return false;
         }
         
-        // Generar nombre del archivo PDF con sanitización
+        System.out.println("✅ Carpeta para PDFs: " + carpeta.getAbsolutePath());
+        
+        // Generar nombre del archivo
         String nombreCliente = sesion.getClienteNombreCompleto()
-            .replaceAll("[^a-zA-Z0-9\\s]", "") // Remover caracteres especiales
-            .replaceAll("\\s+", "_")           // Reemplazar espacios con _
+            .replaceAll("[^a-zA-Z0-9\\s]", "")
+            .replaceAll("\\s+", "_")
             .trim();
             
         if (nombreCliente.isEmpty()) {
@@ -639,194 +727,279 @@ private boolean generarPDF() {
             contador++;
             if (contador > 100) {
                 System.err.println("❌ Demasiados archivos con el mismo nombre");
+                mostrarAlerta("Error: Demasiados archivos con el mismo nombre", Alert.AlertType.ERROR);
                 return false;
             }
         }
         
         System.out.println("✅ Archivo destino: " + archivo.getAbsolutePath());
         
-        // CREAR PDF usando iText con manejo robusto de errores
-        Document document = null;
-        FileOutputStream fos = null;
-        PdfWriter writer = null;
+        // ========== GENERAR PDF CON iText ==========
+        Document documento = new Document(PageSize.A4);
+        PdfWriter.getInstance(documento, new FileOutputStream(archivo));
+        documento.open();
         
-        try {
-            // Crear stream de salida
-            fos = new FileOutputStream(archivo);
-            System.out.println("✅ FileOutputStream creado");
+        // Configurar fuentes
+        Font tituloFont = new Font(Font.FontFamily.HELVETICA, 24, Font.BOLD, BaseColor.BLUE);
+        Font subtituloFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD, BaseColor.BLACK);
+        Font normalFont = new Font(Font.FontFamily.HELVETICA, 12, Font.NORMAL, BaseColor.BLACK);
+        Font boldFont = new Font(Font.FontFamily.HELVETICA, 12, Font.BOLD, BaseColor.BLACK);
+        Font pequenaFont = new Font(Font.FontFamily.HELVETICA, 10, Font.NORMAL, BaseColor.GRAY);
+        
+        // === HEADER DEL PDF ===
+        Paragraph titulo = new Paragraph("🎉 SEGUNDO CASTILLO", tituloFont);
+        titulo.setAlignment(Element.ALIGN_CENTER);
+        titulo.setSpacingAfter(5);
+        documento.add(titulo);
+        
+        Paragraph subtitulo = new Paragraph("PRESUPUESTO DE EVENTO", subtituloFont);
+        subtitulo.setAlignment(Element.ALIGN_CENTER);
+        subtitulo.setSpacingAfter(20);
+        documento.add(subtitulo);
+        
+        // === INFORMACIÓN DEL CLIENTE ===
+        documento.add(new Paragraph("INFORMACIÓN DEL CLIENTE", subtituloFont));
+        documento.add(new Paragraph("Nombre: " + sesion.getClienteNombreCompleto(), normalFont));
+        documento.add(new Paragraph("Teléfono: " + sesion.getClienteTelefono(), normalFont));
+        documento.add(new Paragraph("Email: " + sesion.getClienteEmail(), normalFont));
+        documento.add(new Paragraph("RFC: " + sesion.getClienteRfc(), normalFont));
+        documento.add(new Paragraph("Fecha del presupuesto: " + fecha, normalFont));
+        documento.add(new Paragraph(" ", normalFont));
+        
+        // === PAQUETE SELECCIONADO ===
+        documento.add(new Paragraph("PAQUETE SELECCIONADO", subtituloFont));
+        documento.add(new Paragraph("Nombre: " + sesion.getPaqueteNombre(), boldFont));
+        documento.add(new Paragraph("Precio: $" + String.format("%.2f", sesion.getPaquetePrecio()) + " MXN", normalFont));
+        documento.add(new Paragraph(" ", normalFont));
+        
+        // === SERVICIOS ADICIONALES ===
+        if (sesion.tieneExtras()) {
+            documento.add(new Paragraph("SERVICIOS ADICIONALES", subtituloFont));
             
-            // Crear documento
-            document = new Document(PageSize.A4);
-            System.out.println("✅ Document creado");
-            
-            // Crear writer
-            writer = PdfWriter.getInstance(document, fos);
-            System.out.println("✅ PdfWriter creado");
-            
-            // Abrir documento
-            document.open();
-            System.out.println("✅ Document abierto");
-            
-            // === CONTENIDO DEL PDF ===
-            
-            // Título con manejo de encoding
-            try {
-                Font tituloFont = new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD);
-                Paragraph titulo = new Paragraph("PRESUPUESTO DE EVENTO - SEGUNDO CASTILLO", tituloFont);
-                titulo.setAlignment(Element.ALIGN_CENTER);
-                document.add(titulo);
-                System.out.println("✅ Título agregado");
-            } catch (Exception e) {
-                System.err.println("❌ Error agregando título: " + e.getMessage());
-                throw e;
-            }
-            
-            document.add(new Paragraph(" ")); // Espacio
-            
-            // Fecha
-            String fechaFormateada = LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-            document.add(new Paragraph("Fecha: " + fechaFormateada));
-            document.add(new Paragraph(" "));
-            System.out.println("✅ Fecha agregada");
-            
-            // Datos del cliente con validación
-            Font subtituloFont = new Font(Font.FontFamily.HELVETICA, 14, Font.BOLD);
-            document.add(new Paragraph("DATOS DEL CLIENTE", subtituloFont));
-            
-            String clienteNombre = sesion.getClienteNombreCompleto();
-            String clienteRfc = sesion.getClienteRfc();
-            String clienteTelefono = sesion.getClienteTelefono();
-            
-            document.add(new Paragraph("Nombre: " + (clienteNombre != null ? clienteNombre : "No especificado")));
-            document.add(new Paragraph("RFC: " + (clienteRfc != null ? clienteRfc : "No especificado")));
-            document.add(new Paragraph("Telefono: " + (clienteTelefono != null ? clienteTelefono : "No especificado")));
-            document.add(new Paragraph(" "));
-            System.out.println("✅ Datos del cliente agregados");
-            
-            // Datos del evento
-            document.add(new Paragraph("DATOS DEL EVENTO", subtituloFont));
-            String horario = (mautinoRadio != null && mautinoRadio.isSelected()) ? "Matutino" : "Vespertino";
-            document.add(new Paragraph("Horario: " + horario));
-            document.add(new Paragraph("Paquete: " + sesion.getPaqueteNombre()));
-            document.add(new Paragraph("Precio Paquete: $" + String.format("%.2f", sesion.getPaquetePrecio()) + " MXN"));
-            document.add(new Paragraph(" "));
-            System.out.println("✅ Datos del evento agregados");
-            
-            // Extras con validación
-            if (sesion.tieneExtras()) {
-                document.add(new Paragraph("EXTRAS SELECCIONADOS", subtituloFont));
-                
-                java.util.List<modelos.Extra> extras = sesion.getExtrasSeleccionados();
-                if (extras != null) {
-                    for (modelos.Extra extra : extras) {
-                        if (extra != null && extra.getCantidad() > 0) {
-                            String lineaExtra = "• " + extra.getNombre() + " x" + extra.getCantidad() + 
-                                              " = $" + String.format("%.2f", extra.getPrecio() * extra.getCantidad()) + " MXN";
-                            document.add(new Paragraph(lineaExtra));
-                        }
-                    }
-                    document.add(new Paragraph("Subtotal Extras: $" + String.format("%.2f", sesion.getTotalExtras()) + " MXN"));
+            java.util.List<modelos.Extra> extras = sesion.getExtrasSeleccionados();
+            for (modelos.Extra extra : extras) {
+                if (extra.getCantidad() > 0) {
+                    documento.add(new Paragraph("• " + extra.getNombre(), boldFont));
+                    documento.add(new Paragraph("  Cantidad: " + extra.getCantidad() + 
+                                               " | Precio unitario: $" + String.format("%.2f", extra.getPrecio()) + 
+                                               " | Subtotal: $" + String.format("%.2f", extra.getPrecio() * extra.getCantidad()) + " MXN", normalFont));
+                    documento.add(new Paragraph(" ", pequenaFont));
                 }
-            } else {
-                document.add(new Paragraph("EXTRAS: Sin extras seleccionados"));
-            }
-            document.add(new Paragraph(" "));
-            System.out.println("✅ Extras agregados");
-            
-            // Términos de pago
-            document.add(new Paragraph("TERMINOS DE PAGO", subtituloFont));
-            String plazos = (plazosItem != null) ? plazosItem.getText() : "No especificado";
-            String metodoPago = (metodoPagoItem != null) ? metodoPagoItem.getText() : "No especificado";
-            document.add(new Paragraph("Plazos: " + plazos));
-            document.add(new Paragraph("Metodo de pago: " + metodoPago));
-            document.add(new Paragraph(" "));
-            System.out.println("✅ Términos de pago agregados");
-            
-            // Total
-            Font totalFont = new Font(Font.FontFamily.HELVETICA, 16, Font.BOLD);
-            Paragraph totalParagraph = new Paragraph("TOTAL GENERAL: $" + String.format("%.2f", sesion.getTotalGeneral()) + " MXN", totalFont);
-            totalParagraph.setAlignment(Element.ALIGN_CENTER);
-            document.add(totalParagraph);
-            
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Notas importantes:"));
-            document.add(new Paragraph("• Presupuesto valido por 30 dias"));
-            document.add(new Paragraph("• Se requiere 50% de anticipo para confirmar"));
-            document.add(new Paragraph("• El evento incluye todos los servicios especificados"));
-            System.out.println("✅ Total y notas agregados");
-            
-        } catch (DocumentException de) {
-            System.err.println("❌ Error de iText Document: " + de.getMessage());
-            de.printStackTrace();
-            throw de;
-        } catch (FileNotFoundException fnfe) {
-            System.err.println("❌ Error de archivo no encontrado: " + fnfe.getMessage());
-            throw fnfe;
-        } finally {
-            // Cerrar recursos en orden correcto
-            try {
-                if (document != null && document.isOpen()) {
-                    document.close();
-                    System.out.println("✅ Document cerrado");
-                }
-            } catch (Exception e) {
-                System.err.println("❌ Error cerrando document: " + e.getMessage());
             }
             
-            try {
-                if (fos != null) {
-                    fos.close();
-                    System.out.println("✅ FileOutputStream cerrado");
-                }
-            } catch (Exception e) {
-                System.err.println("❌ Error cerrando FileOutputStream: " + e.getMessage());
-            }
+            documento.add(new Paragraph("Total Extras: $" + String.format("%.2f", sesion.getTotalExtras()) + " MXN", boldFont));
+            documento.add(new Paragraph(" ", normalFont));
+        } else {
+            documento.add(new Paragraph("SERVICIOS ADICIONALES", subtituloFont));
+            documento.add(new Paragraph("Sin servicios adicionales seleccionados", normalFont));
+            documento.add(new Paragraph(" ", normalFont));
         }
         
-        // Verificar que el archivo se creó correctamente
-        if (!archivo.exists()) {
-            System.err.println("❌ El archivo PDF no se creó");
-            return false;
+        // === DETALLES DEL EVENTO ===
+        documento.add(new Paragraph("DETALLES DEL EVENTO", subtituloFont));
+        String horario = mautinoRadio.isSelected() ? "Matutino" : "Vespertino";
+        documento.add(new Paragraph("Horario: " + horario, normalFont));
+        documento.add(new Paragraph("Plazos de pago: " + plazosItem.getText(), normalFont));
+        documento.add(new Paragraph("Método de pago: " + metodoPagoItem.getText(), normalFont));
+        documento.add(new Paragraph(" ", normalFont));
+        
+        // === RESUMEN FINANCIERO ===
+        documento.add(new Paragraph("RESUMEN FINANCIERO", subtituloFont));
+        documento.add(new Paragraph("Paquete base: $" + String.format("%.2f", sesion.getPaquetePrecio()) + " MXN", normalFont));
+        
+        if (sesion.tieneExtras()) {
+            documento.add(new Paragraph("Servicios adicionales: $" + String.format("%.2f", sesion.getTotalExtras()) + " MXN", normalFont));
         }
         
-        if (archivo.length() == 0) {
-            System.err.println("❌ El archivo PDF está vacío");
-            archivo.delete(); // Eliminar archivo vacío
-            return false;
-        }
+        documento.add(new Paragraph(" ", normalFont));
+        
+        // TOTAL DESTACADO
+        Paragraph total = new Paragraph("TOTAL GENERAL: $" + String.format("%.2f", sesion.getTotalGeneral()) + " MXN", 
+                                       new Font(Font.FontFamily.HELVETICA, 18, Font.BOLD, BaseColor.RED));
+        total.setAlignment(Element.ALIGN_RIGHT);
+        total.setSpacingBefore(10);
+        documento.add(total);
+        
+        // === INFORMACIÓN ADICIONAL ===
+        documento.add(new Paragraph(" ", normalFont));
+        documento.add(new Paragraph(" ", normalFont));
+        documento.add(new Paragraph("INFORMACIÓN ADICIONAL", subtituloFont));
+        documento.add(new Paragraph("• Este presupuesto es válido por 30 días", normalFont));
+        documento.add(new Paragraph("• Se requiere el 50% de anticipo para confirmar la reserva", normalFont));
+        documento.add(new Paragraph("• El evento incluye todos los servicios especificados", normalFont));
+        documento.add(new Paragraph("• Los precios están expresados en pesos mexicanos (MXN)", normalFont));
+        
+        // === PIE DE PÁGINA ===
+        documento.add(new Paragraph(" ", normalFont));
+        documento.add(new Paragraph(" ", normalFont));
+        Paragraph contactInfo = new Paragraph("CONTACTO: bienvenido@forgestudio.com.mx", normalFont);
+        contactInfo.setAlignment(Element.ALIGN_CENTER);
+        documento.add(contactInfo);
+        
+        Paragraph pie = new Paragraph("Presupuesto generado el: " + 
+                                     LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")), 
+                                     pequenaFont);
+        pie.setAlignment(Element.ALIGN_CENTER);
+        documento.add(pie);
+        
+        // Cerrar documento
+        documento.close();
         
         System.out.println("✅ PDF generado exitosamente: " + archivo.getAbsolutePath());
-        System.out.println("✅ Tamaño del archivo: " + archivo.length() + " bytes");
         
-        // Guardar en base de datos
-        boolean guardadoEnBD = guardarPresupuestoEnBD(sesion, archivo.getPath(), archivo.getName());
+        // === GUARDAR EN BASE DE DATOS ===
+        boolean guardadoEnBD = guardarPresupuestoEnBD(sesion, archivo.getAbsolutePath(), nombreArchivo);
         
-        if (!guardadoEnBD) {
-            System.err.println("⚠️ PDF creado pero no guardado en BD");
-            // No retornar false aquí, el PDF sí se creó
+        if (guardadoEnBD) {
+            System.out.println("✅ Presupuesto guardado en base de datos");
+        } else {
+            System.err.println("⚠️ PDF generado pero no se pudo guardar en BD");
+        }
+        
+        // === ABRIR PDF ===
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(archivo);
+                System.out.println("✅ PDF abierto automáticamente");
+            } else {
+                System.out.println("⚠️ Desktop no soportado, PDF guardado en: " + archivo.getAbsolutePath());
+            }
+        } catch (IOException e) {
+            System.err.println("⚠️ No se pudo abrir automáticamente: " + e.getMessage());
         }
         
         return true;
         
-    } catch (DocumentException e) {
-        System.err.println("❌ Error de iText: " + e.getMessage());
-        e.printStackTrace();
+    } catch (DocumentException | FileNotFoundException e) {
+        System.err.println("❌ Error al generar PDF: " + e.getMessage());
         mostrarAlerta("Error al generar PDF: " + e.getMessage(), Alert.AlertType.ERROR);
-        return false;
-    } catch (FileNotFoundException e) {
-        System.err.println("❌ Error de archivo: " + e.getMessage());
-        e.printStackTrace();
-        mostrarAlerta("Error: No se pudo crear el archivo PDF. Verifique permisos.", Alert.AlertType.ERROR);
         return false;
     } catch (Exception e) {
         System.err.println("❌ Error general al generar PDF: " + e.getMessage());
-        e.printStackTrace();
         mostrarAlerta("Error inesperado al generar PDF: " + e.getMessage(), Alert.AlertType.ERROR);
         return false;
     }
 }
 
+// === MÉTODO MODIFICADO: CREAR CARPETA EN DESKTOP COMO PRIORIDAD ===
+private File crearCarpetaPresupuestos() {
+    System.out.println("🔄 Intentando crear carpeta de presupuestos en Desktop...");
+    
+    // Lista de ubicaciones con DESKTOP como PRIMERA OPCIÓN
+    String[] ubicacionesPosibles = {
+        System.getProperty("user.home") + "/Desktop/Presupuestos",     // 🎯 DESKTOP PRIMERO
+        System.getProperty("user.home") + "\\Desktop\\Presupuestos",   // 🎯 DESKTOP (Windows)
+        System.getProperty("user.home") + "/Documents/Presupuestos",   // Documentos
+        System.getProperty("user.dir") + "/Presupuestos",              // Carpeta actual
+        "Presupuestos",                                                // Carpeta relativa
+        System.getProperty("java.io.tmpdir") + "/Presupuestos"         // Temporal como último recurso
+    };
+    
+    for (String ubicacion : ubicacionesPosibles) {
+        try {
+            File carpeta = new File(ubicacion);
+            
+            System.out.println("🔍 Probando ubicación: " + carpeta.getAbsolutePath());
+            
+            // Si la carpeta ya existe y tiene permisos
+            if (carpeta.exists()) {
+                if (carpeta.canWrite()) {
+                    System.out.println("✅ Carpeta existente con permisos: " + carpeta.getAbsolutePath());
+                    return carpeta;
+                } else {
+                    System.out.println("❌ Carpeta existe pero sin permisos de escritura: " + ubicacion);
+                    continue;
+                }
+            }
+            
+            // Intentar crear la carpeta y sus directorios padre si no existen
+            boolean carpetaCreada = carpeta.mkdirs();
+            
+            if (carpetaCreada || carpeta.exists()) {
+                // Verificar permisos de escritura
+                if (carpeta.canWrite()) {
+                    System.out.println("✅ Carpeta creada exitosamente en DESKTOP: " + carpeta.getAbsolutePath());
+                    
+                    // Mostrar mensaje de confirmación al usuario
+                    if (ubicacion.contains("Desktop")) {
+                        System.out.println("🎉 PDFs se guardarán en el Desktop: " + carpeta.getAbsolutePath());
+                    }
+                    
+                    return carpeta;
+                } else {
+                    System.out.println("❌ Carpeta creada pero sin permisos de escritura: " + ubicacion);
+                    continue;
+                }
+            } else {
+                System.out.println("❌ No se pudo crear carpeta: " + ubicacion);
+                continue;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("❌ Error con ubicación " + ubicacion + ": " + e.getMessage());
+            continue;
+        }
+    }
+    
+    // Si llegamos aquí, ninguna ubicación funcionó
+    System.err.println("❌ No se pudo crear carpeta en ninguna ubicación, incluyendo Desktop");
+    
+    mostrarAlerta(
+        "No se pudo crear la carpeta de presupuestos en el Desktop.\n\n" +
+        "Ubicaciones intentadas:\n" +
+        "• Desktop del usuario (prioridad)\n" +
+        "• Documentos del usuario\n" +
+        "• Carpeta actual del programa\n" +
+        "• Directorio de trabajo\n" +
+        "• Carpeta temporal\n\n" +
+        "Verifica los permisos de tu sistema o ejecuta como administrador.",
+        Alert.AlertType.ERROR
+    );
+    
+    return null;
+}
+
+// === MÉTODO ADICIONAL: VERIFICAR Y MOSTRAR RUTA DEL DESKTOP ===
+private void verificarRutaDesktop() {
+    try {
+        String rutaDesktop = System.getProperty("user.home") + "/Desktop";
+        File desktop = new File(rutaDesktop);
+        
+        System.out.println("=== VERIFICACIÓN DEL DESKTOP ===");
+        System.out.println("Ruta del Desktop: " + desktop.getAbsolutePath());
+        System.out.println("Desktop existe: " + desktop.exists());
+        System.out.println("Puede escribir: " + desktop.canWrite());
+        System.out.println("Puede leer: " + desktop.canRead());
+        
+        // Probar con la ruta de Windows también
+        String rutaDesktopWindows = System.getProperty("user.home") + "\\Desktop";
+        File desktopWindows = new File(rutaDesktopWindows);
+        System.out.println("Ruta Desktop Windows: " + desktopWindows.getAbsolutePath());
+        System.out.println("Desktop Windows existe: " + desktopWindows.exists());
+        
+        System.out.println("================================");
+        
+    } catch (Exception e) {
+        System.err.println("Error verificando Desktop: " + e.getMessage());
+    }
+}
+
+// === MÉTODO AUXILIAR: OBTENER INFORMACIÓN DEL SISTEMA ===
+private void mostrarInformacionSistema() {
+    System.out.println("=== INFORMACIÓN DEL SISTEMA ===");
+    System.out.println("Usuario: " + System.getProperty("user.name"));
+    System.out.println("Directorio home: " + System.getProperty("user.home"));
+    System.out.println("Directorio actual: " + System.getProperty("user.dir"));
+    System.out.println("Directorio temporal: " + System.getProperty("java.io.tmpdir"));
+    System.out.println("Sistema operativo: " + System.getProperty("os.name"));
+    System.out.println("Versión Java: " + System.getProperty("java.version"));
+    System.out.println("===============================");
+}
+
     /// ========== MÉTODO MEJORADO: GUARDAR PDF COMO BLOB EN BD ==========
+// === MÉTODO CORREGIDO: GUARDAR PRESUPUESTO EN BD ===
+// REEMPLAZA EL MÉTODO guardarPresupuestoEnBD() en VistaPreviaPresupuestoController.java
+
 private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, String nombreArchivo) {
     int intentos = 0;
     int maxIntentos = 3;
@@ -872,7 +1045,7 @@ private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, St
                 extrasDetalle = extrasBuilder.toString();
             }
             
-            // SQL CON BLOB - AGREGAMOS archivo_pdf_contenido
+            // SQL COMPLETO
             String sql = "INSERT INTO presupuestos (" +
                         "numero_presupuesto, cliente_id, cliente_nombre, cliente_rfc, cliente_telefono, cliente_email, " +
                         "paquete_id, paquete_nombre, paquete_precio, " +
@@ -902,7 +1075,7 @@ private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, St
             stmt.setString(15, metodoPagoItem.getText());
             stmt.setString(16, nombreArchivo);
             stmt.setString(17, rutaPDF);
-            stmt.setBytes(18, pdfBytes); // ¡AQUÍ GUARDAMOS EL PDF COMPLETO!
+            stmt.setBytes(18, pdfBytes); // PDF COMPLETO COMO BLOB
             stmt.setTimestamp(19, java.sql.Timestamp.valueOf(LocalDate.now().atStartOfDay()));
             stmt.setDate(20, java.sql.Date.valueOf(LocalDate.now().plusDays(30)));
             stmt.setString(21, "Pendiente");
@@ -914,12 +1087,18 @@ private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, St
                 if (generatedKeys.next()) {
                     int presupuestoId = generatedKeys.getInt(1);
                     
+                    // Guardar extras individuales
                     if (sesion.tieneExtras()) {
                         guardarExtrasIndividuales(conn, presupuestoId, sesion.getExtrasSeleccionados());
                     }
                     
                     System.out.println("✅ Presupuesto Y PDF guardados con número: " + numeroPresupuesto);
                     System.out.println("✅ Tamaño del PDF guardado: " + pdfBytes.length + " bytes");
+                    System.out.println("✅ ID del presupuesto: " + presupuestoId);
+                    
+                    // ⭐ VERIFICAR QUE SE GUARDÓ CORRECTAMENTE
+                    verificarPresupuestoGuardado(sesion);
+                    
                     return true;
                 }
             }
@@ -943,6 +1122,7 @@ private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, St
             
         } catch (Exception e) {
             System.err.println("❌ Error al guardar presupuesto en BD: " + e.getMessage());
+            e.printStackTrace(); // ⭐ AGREGAR STACK TRACE PARA DEBUG
             return false;
         }
     }
@@ -1225,6 +1405,74 @@ private boolean guardarPresupuestoEnBD(SesionTemporal sesion, String rutaPDF, St
         
         return html.toString();
     }
+    
+    // ========== MÉTODO PARA VERIFICAR QUE EL PRESUPUESTO SE GUARDÓ CORRECTAMENTE ==========
+private void verificarPresupuestoGuardado(SesionTemporal sesion) {
+    try (Connection conn = Conexion.conectar()) {
+        System.out.println("\n🔍 === VERIFICANDO PRESUPUESTO RECIÉN GUARDADO ===");
+        
+        String sql = """
+            SELECT 
+                id,
+                numero_presupuesto,
+                cliente_nombre,
+                fecha_creacion,
+                total_general,
+                CASE WHEN archivo_pdf_contenido IS NOT NULL THEN LENGTH(archivo_pdf_contenido) ELSE 0 END as tamaño_pdf
+            FROM presupuestos 
+            WHERE cliente_id = ? 
+            ORDER BY fecha_creacion DESC 
+            LIMIT 1
+            """;
+        
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setInt(1, sesion.getClienteId());
+        ResultSet rs = stmt.executeQuery();
+        
+        if (rs.next()) {
+            System.out.println("✅ PRESUPUESTO ENCONTRADO EN BD:");
+            System.out.println("   ID: " + rs.getInt("id"));
+            System.out.println("   Número: " + rs.getString("numero_presupuesto"));
+            System.out.println("   Cliente: " + rs.getString("cliente_nombre"));
+            System.out.println("   Fecha: " + rs.getTimestamp("fecha_creacion"));
+            System.out.println("   Total: $" + rs.getDouble("total_general"));
+            System.out.println("   Tamaño PDF: " + rs.getLong("tamaño_pdf") + " bytes");
+            
+            // Verificar cliente en tabla clientes
+            String sqlCliente = "SELECT id, nombre, apellido_paterno FROM clientes WHERE id = ?";
+            PreparedStatement stmtCliente = conn.prepareStatement(sqlCliente);
+            stmtCliente.setInt(1, sesion.getClienteId());
+            ResultSet rsCliente = stmtCliente.executeQuery();
+            
+            if (rsCliente.next()) {
+                System.out.println("   Cliente en BD: " + rsCliente.getString("nombre") + " " + rsCliente.getString("apellido_paterno"));
+                System.out.println("✅ ¡PRESUPUESTO GUARDADO CORRECTAMENTE!");
+            } else {
+                System.out.println("❌ PROBLEMA: Cliente no existe en tabla clientes");
+            }
+            
+        } else {
+            System.out.println("❌ PROBLEMA: NO SE ENCONTRÓ EL PRESUPUESTO RECIÉN GUARDADO");
+            System.out.println("   Cliente ID buscado: " + sesion.getClienteId());
+            
+            // Verificar si hay algún presupuesto reciente
+            String sqlReciente = "SELECT COUNT(*) as total FROM presupuestos WHERE fecha_creacion >= DATE_SUB(NOW(), INTERVAL 1 HOUR)";
+            PreparedStatement stmtReciente = conn.prepareStatement(sqlReciente);
+            ResultSet rsReciente = stmtReciente.executeQuery();
+            
+            if (rsReciente.next()) {
+                int total = rsReciente.getInt("total");
+                System.out.println("   Presupuestos creados en la última hora: " + total);
+            }
+        }
+        
+        System.out.println("🔍 === FIN VERIFICACIÓN ===\n");
+        
+    } catch (SQLException e) {
+        System.err.println("❌ Error en verificación: " + e.getMessage());
+    }
+}
+
     
     @FXML
     private void accionRegresar(ActionEvent event) throws IOException {
