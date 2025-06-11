@@ -11,6 +11,8 @@ controladores\VistaPreviaPresupuestoController$1.class
 modelos\EventoInfo.class
 modelos\ClienteContrato.class
 database\Conexion.class
+utils\ResponsiveManager.class
+controladores\EjemploControlador.class
 dao\LoginDAO.class
 modelos\SesionTemporal.class
 controladores\ClientesController.class
@@ -19,6 +21,7 @@ modelos\Extra.class
 controladores\Encriptador.class
 controladores\App.class
 controladores\ClientesController$1.class
+utils\ResponsiveHelper.class
 controladores\ReservasController.class
 controladores\ClientesController$DatosPresupuestoCompleto.class
 controladores\ClientesController$2.class

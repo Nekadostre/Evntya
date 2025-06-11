@@ -5,6 +5,7 @@ C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Se
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\VistaPreviaPresupuestoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\MensajesDAO.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Cliente.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\Utils\ResponsiveHelper.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\EventosController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\Utils\GeneradorPDF.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\PaquetesPresupuestoController.java
@@ -13,6 +14,7 @@ C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Re
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\ClientesController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\CalendarioContratoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\database\Conexion.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\Utils\ResponsiveManager.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\LoginController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\Extra.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\App.java
@@ -23,4 +25,5 @@ C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controlado
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\dao\LoginDAO.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\ClientePresupuestoController.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\ContratoReserva.java
+C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\controladores\EjemploControlador.java
 C:\Users\brand\OneDrive\Documents\NetBeansProjects\test\src\main\java\modelos\ClienteConContrato.java
